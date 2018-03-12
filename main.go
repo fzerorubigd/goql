@@ -1,7 +1,13 @@
 package main
 
-import "github.com/fzerorubigd/goql/internal/parse"
+import (
+	"github.com/fzerorubigd/goql/internal/parse"
+)
+
+const (
+	tt int = iota
+)
 
 func main() {
-	parse.Test("select * from xx where id in (1,3434343,4.3) AND test = 'sss'")
+	parse.AST(`select *,aa,ss,"swss" ."sw" from xx`)
 }

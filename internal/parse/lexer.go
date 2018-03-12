@@ -13,13 +13,14 @@ type stateFn func(*lexer) stateFn
 type itemType int
 
 const (
-	eof = -1
+	eof = 0
 )
 
 const (
-	itemError itemType = iota
-	itemEOF
-
+	// eof is zero, so any data from closed channel (with zero value) is eof
+	itemEOF itemType = iota
+	itemError
+	itemWhiteSpace
 	itemSelect
 	itemFrom
 	itemWhere
@@ -50,6 +51,7 @@ const (
 	itemLiteral1
 	itemLiteral2
 	itemSemicolon
+	itemDot
 )
 
 var (
@@ -70,9 +72,13 @@ var (
 )
 
 type item struct {
-	Typ   itemType
+	typ   itemType
 	pos   int
 	value string
+}
+
+func (i item) String() string {
+	return fmt.Sprintf("pos %d, token %s", i.pos, i.value)
 }
 
 type lexer struct {
@@ -176,8 +182,6 @@ func (l *lexer) run() {
 }
 
 func lexStart(l *lexer) stateFn {
-	l.acceptRun(" \t\n")
-	l.ignore()
 	switch r := l.peek(); {
 	case r == eof:
 		if l.parenDepth > 0 {
@@ -190,23 +194,33 @@ func lexStart(l *lexer) stateFn {
 		return lexAlpha
 	case isNumeric(r):
 		return lexNumber
+	case isSpace(r):
+		return lexWhiteSpace
 	case r == '(':
 		return lexParenOpen
 	case r == ')':
 		return lexParenClose
 	case r == '"':
-		return lexLiteral2
+		return createLiteralFunc('"', itemLiteral2)
 	case r == '\'':
-		return lexLiteral1
+		return createLiteralFunc('\'', itemLiteral1)
 	case r == ';':
 		return lexSemicolon
 	case r == ',':
 		return lexComma
 	case r == '*':
-		return lexSemicolon
+		return lexWildCard
+	case r == '.':
+		return lexDot
 	default:
 		return l.errorf("invalid character %c", r)
 	}
+}
+
+func lexWhiteSpace(l *lexer) stateFn {
+	l.acceptRun(" \n\t")
+	l.emit(itemWhiteSpace)
+	return lexStart
 }
 
 func lexOp(l *lexer) stateFn {
@@ -279,26 +293,31 @@ func lexComma(l *lexer) stateFn {
 	return lexStart
 }
 
-func lexLiteral1(l *lexer) stateFn {
-	l.next()
-	for r := l.next(); r != '\''; r = l.next() {
-		if r == eof {
-			return l.errorf("string is not terminated")
+func createLiteralFunc(c rune, it itemType) stateFn {
+	return func(l *lexer) stateFn {
+		l.next()
+		var escape bool
+		for {
+			r := l.next()
+			if escape && r != c && r != '\\' {
+				l.backup() // get better error position
+				return l.errorf("invalid escape character")
+			}
+			if r == c && !escape {
+				break
+			}
+			if r == '\\' && !escape {
+				escape = true
+			} else {
+				escape = false
+			}
+			if r == eof {
+				return l.errorf("string is not terminated")
+			}
 		}
+		l.emit(it)
+		return lexStart
 	}
-	l.emit(itemLiteral1)
-	return lexStart
-}
-
-func lexLiteral2(l *lexer) stateFn {
-	l.next()
-	for r := l.next(); r != '"'; r = l.next() {
-		if r == eof {
-			return l.errorf("string is not terminated")
-		}
-	}
-	l.emit(itemLiteral2)
-	return lexStart
 }
 
 func lexWildCard(l *lexer) stateFn {
@@ -328,9 +347,15 @@ func lexNumber(l *lexer) stateFn {
 	return lexStart
 }
 
+func lexDot(l *lexer) stateFn {
+	l.next()
+	l.emit(itemDot)
+	return lexStart
+}
+
 // isSpace reports whether r is a space character.
 func isSpace(r rune) bool {
-	return r == ' ' || r == '\t'
+	return r == ' ' || r == '\t' || r == '\n'
 }
 
 // isEndOfLine reports whether r is an end-of-line character.
@@ -353,11 +378,4 @@ func isNumeric(r rune) bool {
 
 func isSQLOperator(r rune) bool {
 	return r == '>' || r == '<' || r == '='
-}
-
-func Test(t string) {
-	l := lex(t)
-	for i := range l.items {
-		fmt.Printf("\n%d (%d) => %s", i.Typ, i.pos, i.value)
-	}
 }
