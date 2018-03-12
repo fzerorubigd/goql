@@ -308,7 +308,20 @@ func lexWildCard(l *lexer) stateFn {
 }
 
 func lexNumber(l *lexer) stateFn {
-	for isNumeric(l.next()) {
+	l.acceptRun("+-")
+	var dot bool
+	for {
+		r := l.next()
+		if r == '.' {
+			if dot {
+				return l.errorf("two dot in one number")
+			}
+			dot = true
+			continue
+		}
+		if !isNumeric(r) {
+			break
+		}
 	}
 	l.backup()
 	l.emit(itemNumber)
