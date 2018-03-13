@@ -1,7 +1,5 @@
 package parse
 
-import "fmt"
-
 type parser struct {
 	l        *lexer
 	last     item
@@ -32,9 +30,17 @@ func (p *parser) reject() {
 	p.rejected = true
 }
 
-func AST(q string) {
+// AST return the abstract source tree for given query
+func AST(q string) Query {
 	p := &parser{
 		l: lex(q),
 	}
-	fmt.Println(newStatement(p))
+	s, err := newStatement(p)
+	if err != nil {
+		p.l.drain() // make sure the lexer is terminated
+	}
+
+	return Query{
+		Statement: s,
+	}
 }

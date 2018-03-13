@@ -233,16 +233,17 @@ func lexOp(l *lexer) stateFn {
 		if rn == '=' {
 			l.next()
 			t = itemGreaterEqual
-		} else if rn == '>' {
-			l.next()
-			t = itemNotEqual
 		}
 	case '<':
 		t = itemLesser
 		if rn == '=' {
 			l.next()
 			t = itemLesserEqual
+		} else if rn == '>' {
+			l.next()
+			t = itemNotEqual
 		}
+
 	case '=':
 		t = itemEqual
 	}
@@ -277,7 +278,7 @@ func lexParenClose(l *lexer) stateFn {
 		l.errorf("invalid ) ")
 		return nil
 	}
-	l.emit(itemParenOpen)
+	l.emit(itemParenClose)
 	return lexStart
 }
 
@@ -327,7 +328,6 @@ func lexWildCard(l *lexer) stateFn {
 }
 
 func lexNumber(l *lexer) stateFn {
-	l.acceptRun("+-")
 	var dot bool
 	for {
 		r := l.next()
@@ -356,11 +356,6 @@ func lexDot(l *lexer) stateFn {
 // isSpace reports whether r is a space character.
 func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\n'
-}
-
-// isEndOfLine reports whether r is an end-of-line character.
-func isEndOfLine(r rune) bool {
-	return r == '\r' || r == '\n'
 }
 
 func isAlpha(r rune) bool {
