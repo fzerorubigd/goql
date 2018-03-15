@@ -28,9 +28,22 @@ func functionsProvider(in interface{}) []interface{} {
 
 type isMethodColumn struct{}
 
-func (isMethodColumn) Value(in interface{}) bool {
+func (isMethodColumn) Value(in interface{}) structures.String {
 	fn := in.(*astdata.Function)
-	return fn.Receiver() != nil
+	if fn.ReceiverType() == "" {
+		return structures.String{Null: true}
+	}
+	return structures.String{String: fn.ReceiverType()}
+}
+
+type isPointerMethod struct{}
+
+func (isPointerMethod) Value(in interface{}) structures.Bool {
+	fn := in.(*astdata.Function)
+	if fn.ReceiverType() == "" {
+		return structures.Bool{Null: true}
+	}
+	return structures.Bool{Bool: fn.RecieverPointer()}
 }
 
 func registerFunc() {
@@ -40,7 +53,8 @@ func registerFunc() {
 	structures.RegisterField("funcs", "pkg_name", genericPackageName{})
 	structures.RegisterField("funcs", "pkg_path", genericPackagePath{})
 	structures.RegisterField("funcs", "file", genericFileName{})
-	structures.RegisterField("funcs", "method", isMethodColumn{})
+	structures.RegisterField("funcs", "receiver", isMethodColumn{})
+	structures.RegisterField("funcs", "pointer_receiver", isPointerMethod{})
 }
 
 func init() {

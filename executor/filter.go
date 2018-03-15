@@ -6,13 +6,17 @@ import (
 	"strings"
 
 	"github.com/fzerorubigd/goql/internal/parse"
+	"github.com/fzerorubigd/goql/structures"
 )
 
 const (
-	itemGetter parse.ItemType = -9999
+	itemGetter   parse.ItemType = -9999
+	nullValue    null           = 0
+	notNullValue null           = 1
 )
 
 type (
+	null       int
 	getter     func([]interface{}) interface{}
 	opGetter   func(getter, getter) getter
 	operGetter func(parse.Item) getter
@@ -21,8 +25,10 @@ type (
 var (
 	operGetterMap = map[parse.ItemType]operGetter{
 		itemColumn:         fieldGetterGenerator,
+		parse.ItemAlpha:    alphaGetterGenerator,
 		parse.ItemLiteral1: literal1GetterGenerator,
 		parse.ItemNumber:   numberGetterGenerator,
+		parse.ItemNull:     nullGetterGenerator,
 	}
 
 	opGetterMap = map[parse.ItemType]opGetter{
@@ -34,6 +40,7 @@ var (
 		parse.ItemGreaterEqual: operGreaterEqual,
 		parse.ItemLesser:       operLesser,
 		parse.ItemLesserEqual:  operLesserEqual,
+		parse.ItemIs:           operIs,
 	}
 )
 
@@ -53,12 +60,57 @@ func (g getter) String() string {
 	return ""
 }
 
+func nullGetterGenerator(t parse.Item) getter {
+	if t.Type() != parse.ItemNull {
+		panic("runtime error")
+	}
+	return func(in []interface{}) interface{} {
+		return nullValue
+	}
+}
+
+func alphaGetterGenerator(t parse.Item) getter {
+	if t.Type() != parse.ItemAlpha {
+		panic("runtime error")
+	}
+	switch strings.ToLower(t.Value()) {
+	case "true":
+		return func([]interface{}) interface{} {
+			return true
+		}
+	case "false":
+		return func([]interface{}) interface{} {
+			return false
+		}
+	default:
+		panic("runtime error")
+	}
+}
+
 func fieldGetterGenerator(t parse.Item) getter {
 	if t.Type() != itemColumn {
 		panic("runtime error")
 	}
 	var idx = t.Pos()
 	return func(in []interface{}) interface{} {
+		switch t := in[idx].(type) {
+		case structures.String:
+			if t.Null {
+				return nullValue
+			}
+			return t.String
+		case structures.Bool:
+			if t.Null {
+				return nullValue
+			}
+			return t.Bool
+		case structures.Number:
+			if t.Null {
+				return nullValue
+			}
+			return t.Number
+
+		}
 		return in[idx]
 	}
 }
@@ -125,6 +177,8 @@ func operGreater(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) > 0
 		case float64:
 			return lv.(float64) > rv.(float64)
+		case null:
+			return lv.(null) > rv.(null)
 		}
 		panic("not supported type")
 	}
@@ -144,13 +198,15 @@ func operGreaterEqual(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) >= 0
 		case float64:
 			return lv.(float64) >= rv.(float64)
+		case null:
+			return lv.(null) >= rv.(null)
 		}
 		panic("not supported type")
 	}
 }
 
 func operLesser(l getter, r getter) getter {
-	return func(in []interface{}) (b interface{}) {
+	return func(in []interface{}) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -163,6 +219,8 @@ func operLesser(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) < 0
 		case float64:
 			return lv.(float64) < rv.(float64)
+		case null:
+			return lv.(null) < rv.(null)
 		}
 		panic("not supported type")
 	}
@@ -182,8 +240,40 @@ func operLesserEqual(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) <= 0
 		case float64:
 			return lv.(float64) <= rv.(float64)
+		case null:
+			return lv.(null) <= rv.(null)
 		}
 		panic("not supported type")
+	}
+}
+
+func operIs(l getter, r getter) getter {
+	// TODO : there is a problem, if he right operand is a column with null value it works here :)
+	return func(in []interface{}) interface{} {
+		v := r(in)
+		n, ok := v.(null)
+		if !ok {
+			panic("is only works on null/not null")
+		}
+		return toNull(l(in)) == n
+	}
+}
+
+func operNot(l getter) getter {
+	return func(in []interface{}) interface{} {
+		d := l(in)
+		switch t := d.(type) {
+		case bool:
+			return !t
+		case null:
+			if t == notNullValue {
+				return nullValue
+			}
+			return notNullValue
+		case string, float64:
+			panic("not is not applicable for string or number")
+		}
+		return !toBool(l(in))
 	}
 }
 
@@ -195,6 +285,8 @@ func castAsLeft(l, r interface{}) interface{} {
 		return toNumber(r)
 	case string:
 		return toString(r)
+	case null:
+		return toNull(r)
 	}
 	panic(fmt.Sprintf("%T is invalid type", l))
 }
@@ -208,6 +300,8 @@ func toBool(in interface{}) bool {
 		return b
 	case float64:
 		return t != 0
+	case null:
+		return false
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -224,6 +318,8 @@ func toNumber(in interface{}) float64 {
 		return f
 	case float64:
 		return t
+	case null:
+		return 0
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -236,6 +332,22 @@ func toString(in interface{}) string {
 		return t
 	case float64:
 		return fmt.Sprint(t)
+	case null:
+		return ""
+	}
+	panic(fmt.Sprintf("result from type %T", in))
+}
+
+func toNull(in interface{}) null {
+	switch t := in.(type) {
+	case bool:
+		return notNullValue
+	case string:
+		return notNullValue
+	case float64:
+		return notNullValue
+	case null:
+		return t
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -249,16 +361,18 @@ func isOperator(t parse.ItemType) bool {
 		t == parse.ItemGreater ||
 		t == parse.ItemGreaterEqual ||
 		t == parse.ItemLesser ||
-		t == parse.ItemLesserEqual
+		t == parse.ItemLesserEqual ||
+		t == parse.ItemIs
 }
 
 func getGetter(t parse.Item) getter {
 	if g, ok := t.(getter); ok {
 		return g
 	}
+
 	m, ok := operGetterMap[t.Type()]
 	if !ok {
-		panic(fmt.Sprintf("%T is not belong here", t))
+		panic(fmt.Sprintf("%+v is not belong here", t))
 	}
 	return m(t)
 }
@@ -295,6 +409,14 @@ func buildFilter(w parse.Stack) (getter, error) {
 			lg := getGetter(l)
 			g := getOpGetter(t, lg, rg)
 			w.Push(g)
+		} else if t.Type() == parse.ItemNot {
+			// pop the operand
+			ts, err := p.Pop()
+			if err != nil {
+				return nil, fmt.Errorf("end of stack")
+			}
+			// push back the last getter (but after not )
+			w.Push(operNot(getGetter(ts)))
 		} else {
 			p.Push(t)
 		}

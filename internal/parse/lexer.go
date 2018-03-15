@@ -38,6 +38,12 @@ const (
 	ItemOr
 	// ItemAnd sql and stmt
 	ItemAnd
+	// ItemIs sql is stmt
+	ItemIs
+	// ItemNull sql null stmt
+	ItemNull
+	// ItemNot sql not stmt
+	ItemNot
 	// ItemLimit sql limit stmt
 	ItemLimit
 	// ItemAsc sql asc stmt
@@ -89,11 +95,13 @@ var (
 		"by":     ItemBy,
 		"or":     ItemOr,
 		"and":    ItemAnd,
-		//	"not":    ItemNot,
-		"limit": ItemLimit,
-		"asc":   ItemAsc,
-		"desc":  ItemDesc,
-		"like":  ItemLike,
+		"not":    ItemNot,
+		"limit":  ItemLimit,
+		"asc":    ItemAsc,
+		"desc":   ItemDesc,
+		"like":   ItemLike,
+		"is":     ItemIs,
+		"null":   ItemNull,
 	}
 )
 

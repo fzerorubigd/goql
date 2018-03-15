@@ -72,6 +72,9 @@ func (p *Package) FindConstant(t string) (*Constant, error) {
 // FindFunction try to find function in file
 func (f *File) FindFunction(t string) (*Function, error) {
 	for i := range f.functions {
+		if f.functions[i].Receiver() != nil {
+			continue
+		}
 		if f.functions[i].Name() == t {
 			return f.functions[i], nil
 		}
@@ -83,6 +86,29 @@ func (f *File) FindFunction(t string) (*Function, error) {
 func (p *Package) FindFunction(t string) (*Function, error) {
 	for i := range p.files {
 		if ct, err := p.files[i].FindFunction(t); err == nil {
+			return ct, nil
+		}
+	}
+	return nil, fmt.Errorf("function %s is not found in %s", t, p.Name())
+}
+
+// FindMethod try to find function in file
+func (f *File) FindMethod(t string, fn string) (*Function, error) {
+	for i := range f.functions {
+		if f.functions[i].Receiver() == nil {
+			continue
+		}
+		if f.functions[i].Name() == fn && f.functions[i].ReceiverType() == t {
+			return f.functions[i], nil
+		}
+	}
+	return nil, fmt.Errorf("function %s is not found in %s", t, f.FileName())
+}
+
+// FindMethod try to find function in package
+func (p *Package) FindMethod(t string, fn string) (*Function, error) {
+	for i := range p.files {
+		if ct, err := p.files[i].FindMethod(t, fn); err == nil {
 			return ct, nil
 		}
 	}

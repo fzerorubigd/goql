@@ -18,20 +18,20 @@ func TestFunction(t *testing.T) {
 	assert.Equal(t, p, f.Package())
 	assert.Equal(t, "main.go", f.File().FileName())
 
-	f, err = p.FindFunction("beta.assert")
+	f, err = p.FindMethod("beta", "assert")
 	assert.NoError(t, err)
 
-	assert.Equal(t, "beta.assert", f.Name())
+	assert.Equal(t, "assert", f.Name())
 	assert.Equal(t, "", f.Docs().String())
 	assert.Equal(t, p, f.Package())
 	assert.Equal(t, "main.go", f.File().FileName())
 	assert.NotNil(t, f.Receiver())
 	assert.Equal(t, "", f.Receiver().Name())
 
-	f, err = p.FindFunction("alpha.testing")
+	f, err = p.FindMethod("alpha", "testing")
 	assert.NoError(t, err)
 
-	assert.Equal(t, "alpha.testing", f.Name())
+	assert.Equal(t, "testing", f.Name())
 	assert.Equal(t, "", f.Docs().String())
 	assert.Equal(t, p, f.Package())
 	assert.Equal(t, "main.go", f.File().FileName())

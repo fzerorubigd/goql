@@ -21,5 +21,5 @@ func main() {
 			pretty.Print(i)
 		}
 	*/
-	pretty.Print(executor.Execute("net/http", `SELECT name FROM funcs where  name < 'Z'`))
+	pretty.Print(executor.Execute("net/http", `SELECT name, receiver FROM funcs where receiver is null`))
 }

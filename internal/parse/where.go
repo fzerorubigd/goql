@@ -5,8 +5,8 @@ import "fmt"
 const (
 	whereStart = 1 << iota
 	whereAlpha
-	whereBool
 	whereOp
+	whereNotOp
 )
 
 var (
@@ -25,7 +25,8 @@ func isOperand(t ItemType) bool {
 		t == ItemGreater ||
 		t == ItemGreaterEqual ||
 		t == ItemLesser ||
-		t == ItemLesserEqual
+		t == ItemLesserEqual ||
+		t == ItemIs
 }
 
 func (p *parser) where() (Stack, error) {
@@ -43,7 +44,7 @@ bigLoop:
 		switch ahead := p.scanIgnoreWhiteSpace(); {
 		case ahead.typ == ItemOrder || ahead.typ == ItemLimit || ahead.typ == ItemEOF:
 			if expected|whereOp != expected {
-				return nil, fmt.Errorf("expected an operand but end of where")
+				return nil, fmt.Errorf("expected an operand but end of where %d", expected)
 			}
 			p.reject()
 			break bigLoop
@@ -63,23 +64,42 @@ bigLoop:
 				}
 			}
 			op.Push(ahead)
-			expected = whereBool | whereAlpha
-			if ahead.typ == ItemLike {
-				expected = whereAlpha
-			}
-		case ahead.typ == ItemNumber || ahead.typ == ItemAlpha || ahead.typ == ItemLiteral1 || ahead.typ == ItemLiteral2:
+			expected = whereAlpha
+		case ahead.typ == ItemNumber || ahead.typ == ItemAlpha || ahead.typ == ItemLiteral1 || ahead.typ == ItemLiteral2 || ahead.typ == ItemNot || ahead.typ == ItemNull:
 			// operand
 			if expected|whereAlpha != expected && expected|whereStart != expected {
 				return nil, fmt.Errorf("not expected operand but got %s", ahead)
 			}
-			final.Push(ahead)
-			expected = whereOp
+			not := expected|whereNotOp == expected
+			if ahead.typ == ItemNot {
+				if not {
+					return nil, fmt.Errorf("not after not")
+				}
+				op.Push(ahead)
+				expected = whereAlpha | whereNotOp
+			} else {
+				final.Push(ahead)
+				expected = whereOp
+			}
+
+			if not {
+				top, err := op.Pop()
+				if err != nil || top.Type() != ItemNot {
+					panic("why")
+				}
+				final.Push(top)
+			}
+
 		case ahead.typ == ItemParenOpen:
 			if expected|whereStart != expected && expected|whereAlpha != expected {
 				return nil, fmt.Errorf("wrong '(' ")
 			}
 			op.Push(ahead)
 		case ahead.typ == ItemParenClose:
+			if expected|whereOp != expected {
+				return nil, fmt.Errorf("wrong ')' ")
+			}
+
 			for {
 				o, err := op.Pop()
 				if err != nil {
@@ -90,6 +110,8 @@ bigLoop:
 				}
 				final.Push(o)
 			}
+		default:
+			return nil, fmt.Errorf("not expected %s", ahead)
 		}
 	}
 

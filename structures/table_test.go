@@ -14,25 +14,25 @@ type row int
 type c1 struct {
 }
 
-func (c c1) Value(in interface{}) int64 {
+func (c c1) Value(in interface{}) Number {
 	r := in.(row)
-	return int64(r) * 2
+	return Number{Number: float64(r) * 2.0}
 }
 
 type c2 struct {
 }
 
-func (c c2) Value(in interface{}) string {
+func (c c2) Value(in interface{}) String {
 	r := in.(row)
-	return fmt.Sprintf("%dth row", r)
+	return String{String: fmt.Sprintf("%dth row", r)}
 }
 
 type c3 struct {
 }
 
-func (c c3) Value(in interface{}) bool {
+func (c c3) Value(in interface{}) Bool {
 	r := in.(row)
-	return r%2 == 0
+	return Bool{Bool: r%2 == 0}
 }
 
 func TestTables(t *testing.T) {
@@ -59,9 +59,9 @@ func TestTables(t *testing.T) {
 	var cnt int64
 	for i := range res {
 		assert.Equal(t, 3, len(i))
-		assert.Equal(t, cnt*2, i[0])
-		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[1])
-		assert.Equal(t, cnt%2 == 0, i[2])
+		assert.Equal(t, float64(cnt*2), i[0].(Number).Number)
+		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[1].(String).String)
+		assert.Equal(t, cnt%2 == 0, i[2].(Bool).Bool)
 		cnt++
 	}
 
@@ -73,8 +73,8 @@ func TestTables(t *testing.T) {
 	cnt = 0
 	for i := range res {
 		assert.Equal(t, 2, len(i))
-		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[0])
-		assert.Equal(t, cnt%2 == 0, i[1])
+		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[0].(String).String)
+		assert.Equal(t, cnt%2 == 0, i[1].(Bool).Bool)
 		cnt++
 	}
 

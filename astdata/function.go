@@ -13,6 +13,9 @@ type Function struct {
 	name     string
 	docs     Docs
 	receiver *Variable
+
+	receiverClass   string
+	receiverPointer bool
 }
 
 // Name return the name of the function
@@ -44,6 +47,16 @@ func (f *Function) File() *File {
 	return f.file
 }
 
+// ReceiverType return the type of the receiver
+func (f *Function) ReceiverType() string {
+	return f.receiverClass
+}
+
+// RecieverPointer means this is a pointer method
+func (f *Function) RecieverPointer() bool {
+	return f.receiverPointer
+}
+
 // newFunction return a single function annotation
 func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 	res := &Function{
@@ -64,9 +77,10 @@ func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 		// TODO : after handling the definition its very simple to use that part
 		switch t := res.fn.Recv.List[0].Type.(type) {
 		case *ast.Ident:
-			res.name = nameFromIdent(t) + "." + res.name
+			res.receiverClass = nameFromIdent(t)
 		case *ast.StarExpr:
-			res.name = nameFromIdent(t.X.(*ast.Ident)) + "." + res.name
+			res.receiverClass = nameFromIdent(t.X.(*ast.Ident))
+			res.receiverPointer = true
 		}
 	}
 	return res

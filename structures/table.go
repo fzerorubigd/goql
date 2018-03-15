@@ -9,6 +9,24 @@ import (
 // ValueType is the value type of query
 type ValueType int
 
+// String is the string type in our system
+type String struct {
+	String string
+	Null   bool
+}
+
+// Number is the number
+type Number struct {
+	Number float64
+	Null   bool
+}
+
+// Bool is the boolean type
+type Bool struct {
+	Bool bool
+	Null bool
+}
+
 const (
 	// ValueTypeString is the string type
 	ValueTypeString ValueType = iota
@@ -25,17 +43,17 @@ var (
 
 // StringValuer is provider for a value for a table
 type StringValuer interface {
-	Value(interface{}) string
+	Value(interface{}) String
 }
 
 // IntValuer is the integer valuer
 type IntValuer interface {
-	Value(interface{}) int64
+	Value(interface{}) Number
 }
 
 // BoolValuer is the Boolean valuer
 type BoolValuer interface {
-	Value(interface{}) bool
+	Value(interface{}) Bool
 }
 
 // Table is the single table in system

@@ -1,6 +1,9 @@
 package runtime
 
-import "github.com/fzerorubigd/goql/astdata"
+import (
+	"github.com/fzerorubigd/goql/astdata"
+	"github.com/fzerorubigd/goql/structures"
+)
 
 type filer interface {
 	File() *astdata.File
@@ -17,31 +20,31 @@ type namer interface {
 type genericFileName struct {
 }
 
-func (genericFileName) Value(in interface{}) string {
+func (genericFileName) Value(in interface{}) structures.String {
 	f := in.(filer)
-	return f.File().FileName()
+	return structures.String{String: f.File().FileName()}
 }
 
 type genericPackageName struct {
 }
 
-func (genericPackageName) Value(in interface{}) string {
+func (genericPackageName) Value(in interface{}) structures.String {
 	p := in.(packager)
-	return p.Package().Name()
+	return structures.String{String: p.Package().Name()}
 }
 
 type genericPackagePath struct {
 }
 
-func (genericPackagePath) Value(in interface{}) string {
+func (genericPackagePath) Value(in interface{}) structures.String {
 	p := in.(packager)
-	return p.Package().Path()
+	return structures.String{String: p.Package().Path()}
 }
 
 type genericName struct {
 }
 
-func (genericName) Value(in interface{}) string {
+func (genericName) Value(in interface{}) structures.String {
 	p := in.(namer)
-	return p.Name()
+	return structures.String{String: p.Name()}
 }

@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/internal/parse"
@@ -96,7 +97,7 @@ func Execute(p, src string) ([][]interface{}, error) {
 		pos++
 	}
 
-	ctx.where = parse.NewStack(10)
+	ctx.where = parse.NewStack(0)
 	// which column are needed in where?
 	if st := ss.Where; st != nil {
 		for {
@@ -108,18 +109,20 @@ func Execute(p, src string) ([][]interface{}, error) {
 			switch p.Type() {
 			case parse.ItemAlpha:
 				// this mus be a column name
-				v := p.Value()
-				_, ok := tbl[v]
-				if !ok {
-					return nil, fmt.Errorf("field %s not found", v)
-				}
-				if _, ok := m[v]; !ok {
-					m[v] = pos
-					pos++
-				}
-				ts = col{
-					index: m[v],
-					field: v,
+				v := strings.ToLower(p.Value())
+				if v != "null" && v != "true" && v != "false" {
+					_, ok := tbl[v]
+					if !ok {
+						return nil, fmt.Errorf("field %s not found", v)
+					}
+					if _, ok := m[v]; !ok {
+						m[v] = pos
+						pos++
+					}
+					ts = col{
+						index: m[v],
+						field: v,
+					}
 				}
 			case parse.ItemLiteral2:
 				v := parse.GetTokenString(p)

@@ -32,9 +32,9 @@ func filesProvider(in interface{}) []interface{} {
 type nameColumn struct {
 }
 
-func (nameColumn) Value(in interface{}) string {
+func (nameColumn) Value(in interface{}) structures.String {
 	fl := in.(*astdata.File)
-	return fl.FileName()
+	return structures.String{String: fl.FileName()}
 }
 
 func registerFiles() {
