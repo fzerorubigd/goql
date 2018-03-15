@@ -13,6 +13,9 @@ var (
 )
 
 func variablesProvider(in interface{}) []interface{} {
+	varLock.Lock()
+	defer varLock.Unlock()
+
 	p := in.(*astdata.Package)
 	if d, ok := varCache[p]; ok {
 		return d

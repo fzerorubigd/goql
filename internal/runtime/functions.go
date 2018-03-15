@@ -13,6 +13,9 @@ var (
 )
 
 func functionsProvider(in interface{}) []interface{} {
+	funcLock.Lock()
+	defer funcLock.Unlock()
+
 	p := in.(*astdata.Package)
 	if d, ok := funcCache[p]; ok {
 		return d

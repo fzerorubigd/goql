@@ -4,14 +4,22 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/fzerorubigd/goql/executor"
 	_ "github.com/fzerorubigd/goql/internal/runtime"
+	"github.com/ogier/pflag"
+)
+
+var (
+	pkg = pflag.StringP("package", "p", "net/http", "the package to query against")
 )
 
 func main() {
-	row, data, err := executor.Execute("net/http", `SELECT * FROM vars WHERE file = 'client.go' `)
+	pflag.Parse()
+	sql := strings.Join(pflag.Args(), " ")
+	row, data, err := executor.Execute(*pkg, sql)
 	if err != nil {
 		log.Fatal(err)
 	}

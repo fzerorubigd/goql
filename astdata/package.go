@@ -46,6 +46,15 @@ func (p *Package) Variables() []*Variable {
 	return v
 }
 
+// Types return the types in package
+func (p *Package) Types() []*Type {
+	var t []*Type
+	for i := range p.files {
+		t = append(t, p.files[i].types...)
+	}
+	return t
+}
+
 func parsePackageFullPath(path, folder string) (*Package, error) {
 	if p := getCache(folder); p != nil {
 		return p, nil
