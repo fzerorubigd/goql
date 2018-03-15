@@ -153,7 +153,10 @@ func buildFilter(w parse.Stack) (getter, error) {
 			if err != nil {
 				return nil, fmt.Errorf("its wrong")
 			}
-			g := tt.(getter)
+			g, ok := tt.(getter)
+			if !ok {
+				g = getGetter(tt)
+			}
 			if _, err := p.Pop(); err == nil {
 				return nil, fmt.Errorf("two operand no op?")
 			}
