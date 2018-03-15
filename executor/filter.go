@@ -41,6 +41,7 @@ var (
 		parse.ItemLesser:       operLesser,
 		parse.ItemLesserEqual:  operLesserEqual,
 		parse.ItemIs:           operIs,
+		parse.ItemLike:         operLike,
 	}
 )
 
@@ -256,6 +257,14 @@ func operIs(l getter, r getter) getter {
 			panic("is only works on null/not null")
 		}
 		return toNull(l(in)) == n
+	}
+}
+
+func operLike(l getter, r getter) getter {
+	return func(in []structures.Valuer) interface{} {
+		re := likeStr(toString(r(in))).regexp()
+		v := toString(l(in))
+		return re.MatchString(v)
 	}
 }
 
