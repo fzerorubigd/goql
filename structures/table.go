@@ -6,6 +6,18 @@ import (
 	"sync"
 )
 
+// ValueType is the value type of query
+type ValueType int
+
+const (
+	// ValueTypeString is the string type
+	ValueTypeString ValueType = iota
+	// ValueTypeNumber is the number type
+	ValueTypeNumber
+	// ValueTypeBool is the bool type
+	ValueTypeBool
+)
+
 var (
 	tables = make(map[string]*table)
 	lock   = &sync.Mutex{}
@@ -51,6 +63,26 @@ func RegisterTable(name string, data TableData) {
 		fields: make(map[string]interface{}),
 		lock:   &sync.Mutex{},
 	}
+}
+
+// GetTable return the table definition
+func GetTable(t string) (map[string]ValueType, error) {
+	tbl, ok := tables[t]
+	if !ok {
+		panic(fmt.Sprintf("table %s is not available", t))
+	}
+	res := make(map[string]ValueType)
+	for i := range tbl.fields {
+		switch tbl.fields[i].(type) {
+		case BoolValuer:
+			res[i] = ValueTypeBool
+		case IntValuer:
+			res[i] = ValueTypeNumber
+		case StringValuer:
+			res[i] = ValueTypeString
+		}
+	}
+	return res, nil
 }
 
 // RegisterField is the field registration

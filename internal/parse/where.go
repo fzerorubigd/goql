@@ -3,44 +3,45 @@ package parse
 import "fmt"
 
 const (
-	whereAlpha = 1 << iota
+	whereStart = 1 << iota
+	whereAlpha
 	whereBool
 	whereOp
 )
 
 var (
-	precedence = map[itemType]int{
-		itemOr:  -1,
-		itemAnd: -1,
+	precedence = map[ItemType]int{
+		ItemOr:  -1,
+		ItemAnd: -1,
 	}
 )
 
-func isOperand(t itemType) bool {
-	return t == itemAnd ||
-		t == itemOr ||
-		t == itemLike ||
-		t == itemEqual ||
-		t == itemNotEqual ||
-		t == itemGreater ||
-		t == itemGreaterEqual ||
-		t == itemLesser ||
-		t == itemLesserEqual
+func isOperand(t ItemType) bool {
+	return t == ItemAnd ||
+		t == ItemOr ||
+		t == ItemLike ||
+		t == ItemEqual ||
+		t == ItemNotEqual ||
+		t == ItemGreater ||
+		t == ItemGreaterEqual ||
+		t == ItemLesser ||
+		t == ItemLesserEqual
 }
 
 func (p *parser) where() (Stack, error) {
 	w := p.scanIgnoreWhiteSpace()
-	if w.typ != itemWhere {
+	if w.typ != ItemWhere {
 		return nil, fmt.Errorf("expect WHERE but got %s", w)
 	}
 
-	op := NewStack(10)
-	final := NewStack(20)
+	op := NewStack(0)
+	final := NewStack(0)
 
-	var expected = whereAlpha
+	var expected = whereStart
 bigLoop:
 	for {
 		switch ahead := p.scanIgnoreWhiteSpace(); {
-		case ahead.typ == itemOrder || ahead.typ == itemLimit || ahead.typ == itemEOF:
+		case ahead.typ == ItemOrder || ahead.typ == ItemLimit || ahead.typ == ItemEOF:
 			if expected|whereOp != expected {
 				return nil, fmt.Errorf("expected an operand but end of where")
 			}
@@ -52,23 +53,43 @@ bigLoop:
 				return nil, fmt.Errorf("not expected operator but got %s", ahead)
 			}
 			// so we got the op, push it into stack
-			top, err := op.Peek()
-			if err == nil && precedence[top.typ] > precedence[ahead.typ] {
-				_, _ = op.Pop()
-				final.Push(top)
+			for {
+				top, err := op.Peek()
+				if err == nil && top.Type() != ItemParenOpen && precedence[top.Type()] > precedence[ahead.Type()] {
+					_, _ = op.Pop()
+					final.Push(top)
+				} else {
+					break
+				}
 			}
 			op.Push(ahead)
 			expected = whereBool | whereAlpha
-			if ahead.typ == itemLike {
+			if ahead.typ == ItemLike {
 				expected = whereAlpha
 			}
-		case ahead.typ == itemNumber || ahead.typ == itemAlpha || ahead.typ == itemLiteral1 || ahead.typ == itemLiteral2:
+		case ahead.typ == ItemNumber || ahead.typ == ItemAlpha || ahead.typ == ItemLiteral1 || ahead.typ == ItemLiteral2:
 			// operand
-			if expected|whereAlpha != expected {
+			if expected|whereAlpha != expected && expected|whereStart != expected {
 				return nil, fmt.Errorf("not expected operand but got %s", ahead)
 			}
 			final.Push(ahead)
 			expected = whereOp
+		case ahead.typ == ItemParenOpen:
+			if expected|whereStart != expected && expected|whereAlpha != expected {
+				return nil, fmt.Errorf("wrong '(' ")
+			}
+			op.Push(ahead)
+		case ahead.typ == ItemParenClose:
+			for {
+				o, err := op.Pop()
+				if err != nil {
+					return nil, fmt.Errorf("invalid ')")
+				}
+				if o.Type() == ItemParenOpen {
+					break
+				}
+				final.Push(o)
+			}
 		}
 	}
 
@@ -79,14 +100,5 @@ bigLoop:
 		}
 		final.Push(o)
 	}
-	// stack len function
-	s := NewStack(0)
-	for {
-		o, err := final.Pop()
-		if err != nil {
-			break
-		}
-		s.Push(o)
-	}
-	return s, nil
+	return final, nil
 }

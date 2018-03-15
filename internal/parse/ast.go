@@ -34,34 +34,35 @@ type SelectStmt struct {
 	Where Stack
 }
 
-func getTokenString(t item) string {
-	v := t.value
-	if t.typ == itemLiteral1 {
-		v = strings.Trim(strings.Replace(t.value, `\'`, `'`, -1), "'")
+// GetTokenString is a simple function to handle the quoted strings
+func GetTokenString(t Item) string {
+	v := t.Value()
+	if t.Type() == ItemLiteral1 {
+		v = strings.Trim(strings.Replace(t.Value(), `\'`, `'`, -1), "'")
 	}
-	if t.typ == itemLiteral2 {
-		v = strings.Trim(strings.Replace(t.value, `\"`, `"`, -1), "\"")
+	if t.Type() == ItemLiteral2 {
+		v = strings.Trim(strings.Replace(t.Value(), `\"`, `"`, -1), "\"")
 	}
 	return v
 }
 
 func (ss *SelectStmt) parseField(p *parser) (Field, error) {
 	token := p.scanIgnoreWhiteSpace()
-	if token.typ == itemWildCard {
+	if token.typ == ItemWildCard {
 		return Field{WildCard: true}, nil
 	}
 
-	if token.typ == itemAlpha || token.typ == itemLiteral2 {
+	if token.typ == ItemAlpha || token.typ == ItemLiteral2 {
 		ahead := p.scan() // white space is not allowed here
-		if ahead.typ != itemDot {
+		if ahead.typ != ItemDot {
 			p.reject()
-			return Field{Column: getTokenString(token)}, nil
+			return Field{Column: GetTokenString(token)}, nil
 		}
 		ahead = p.scan()
-		if ahead.typ == itemAlpha || ahead.typ == itemLiteral2 {
+		if ahead.typ == ItemAlpha || ahead.typ == ItemLiteral2 {
 			return Field{
-				Table:  getTokenString(token),
-				Column: getTokenString(ahead),
+				Table:  GetTokenString(token),
+				Column: GetTokenString(ahead),
 			}, nil
 		}
 	}
@@ -78,7 +79,7 @@ func (ss *SelectStmt) parseFields(p *parser) error {
 		ss.Fields = append(ss.Fields, field)
 
 		comma := p.scanIgnoreWhiteSpace()
-		if comma.typ != itemComma {
+		if comma.typ != ItemComma {
 			p.reject()
 			break
 		}
@@ -93,17 +94,17 @@ func (ss *SelectStmt) parse(p *parser) error {
 
 	t := p.scanIgnoreWhiteSpace()
 	// must be from
-	if t.typ != itemFrom {
+	if t.typ != ItemFrom {
 		return fmt.Errorf("unexpected %s , expected FROM or COMMA (,)", t)
 	}
 
 	t = p.scanIgnoreWhiteSpace()
-	if t.typ != itemAlpha && t.typ != itemLiteral2 {
+	if t.typ != ItemAlpha && t.typ != ItemLiteral2 {
 		return fmt.Errorf("unexpected input %s , need table name", t)
 	}
-	ss.Table = getTokenString(t)
+	ss.Table = GetTokenString(t)
 
-	if w := p.scanIgnoreWhiteSpace(); w.typ == itemWhere {
+	if w := p.scanIgnoreWhiteSpace(); w.typ == ItemWhere {
 		p.reject()
 		var err error
 		ss.Where, err = p.where()
@@ -118,7 +119,7 @@ func (ss *SelectStmt) parse(p *parser) error {
 func newStatement(p *parser) (Statement, error) {
 	start := p.scan()
 	switch start.typ {
-	case itemSelect:
+	case ItemSelect:
 		sel := &SelectStmt{}
 		err := sel.parse(p)
 		if err != nil {

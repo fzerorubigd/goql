@@ -22,7 +22,7 @@ func (p *parser) scan() item {
 
 func (p *parser) scanIgnoreWhiteSpace() item {
 	t := p.scan()
-	if t.typ == itemWhiteSpace {
+	if t.typ == ItemWhiteSpace {
 		t = p.scan()
 	}
 	return t

@@ -17,35 +17,34 @@ func TestStack(t *testing.T) {
 	assert.Equal(t, o, item{})
 
 	s.Push(item{
-		typ:   itemAlpha,
+		typ:   ItemAlpha,
 		pos:   10,
 		value: "string",
 	})
 
 	o, err = s.Peek()
 	assert.NoError(t, err)
-	assert.Equal(t, o.typ, itemAlpha)
+	assert.Equal(t, o.Type(), ItemAlpha)
 	assert.Equal(t, o.String(), "pos 10, token string")
 
 	s.Push(item{
-		typ:   itemAnd,
+		typ:   ItemAnd,
 		pos:   11,
 		value: "and",
 	})
 
 	o, err = s.Peek()
 	assert.NoError(t, err)
-	assert.Equal(t, o.typ, itemAnd)
+	assert.Equal(t, o.Type(), ItemAnd)
 	assert.Equal(t, o.String(), "pos 11, token and")
 
 	o, err = s.Pop()
 	assert.NoError(t, err)
-	assert.Equal(t, o.typ, itemAnd)
+	assert.Equal(t, o.Type(), ItemAnd)
 	assert.Equal(t, o.String(), "pos 11, token and")
 
 	o, err = s.Pop()
 	assert.NoError(t, err)
-	assert.Equal(t, o.typ, itemAlpha)
+	assert.Equal(t, o.Type(), ItemAlpha)
 	assert.Equal(t, o.String(), "pos 10, token string")
-
 }

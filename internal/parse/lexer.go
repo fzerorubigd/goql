@@ -10,71 +10,117 @@ import (
 
 type stateFn func(*lexer) stateFn
 
-type itemType int
+// ItemType is each lexeme type
+type ItemType int
 
 const (
 	eof = 0
 )
 
 const (
-	// eof is zero, so any data from closed channel (with zero value) is eof
-	itemEOF itemType = iota
-	itemError
-	itemWhiteSpace
-	itemSelect
-	itemFrom
-	itemWhere
-	itemOrder
-	itemBy
-	itemOr
-	itemAnd
-	//itemNot
-	itemLimit
-	itemAsc
-	itemDesc
-	itemLike
-	itemAlpha
-	itemNumber
-
-	itemEqual
-	itemGreater
-	itemLesser
-	itemGreaterEqual
-	itemLesserEqual
-	itemNotEqual
-
-	itemParenOpen
-	itemParenClose
-
-	itemComma
-	itemWildCard
-	itemLiteral1
-	itemLiteral2
-	itemSemicolon
-	itemDot
+	// ItemEOF eof is zero, so any data from closed channel (with zero value) is eof
+	ItemEOF ItemType = iota
+	// ItemError when there is an error
+	ItemError
+	// ItemWhiteSpace any whitespace sequence
+	ItemWhiteSpace
+	// ItemSelect sql select stmt
+	ItemSelect
+	// ItemFrom sql from stmt
+	ItemFrom
+	// ItemWhere sql where stmt
+	ItemWhere
+	// ItemOrder sql order stmt
+	ItemOrder
+	// ItemBy sql by stmt
+	ItemBy
+	// ItemOr sql or stmt
+	ItemOr
+	// ItemAnd sql and stmt
+	ItemAnd
+	// ItemLimit sql limit stmt
+	ItemLimit
+	// ItemAsc sql asc stmt
+	ItemAsc
+	// ItemDesc sql desc stmt
+	ItemDesc
+	// ItemLike sql like stmt
+	ItemLike
+	// ItemAlpha is a string
+	ItemAlpha
+	// ItemNumber is a number
+	ItemNumber
+	// ItemEqual is =
+	ItemEqual
+	// ItemGreater is >
+	ItemGreater
+	// ItemLesser is <
+	ItemLesser
+	// ItemGreaterEqual is >=
+	ItemGreaterEqual
+	// ItemLesserEqual is <=
+	ItemLesserEqual
+	// ItemNotEqual is <>
+	ItemNotEqual
+	// ItemParenOpen is (
+	ItemParenOpen
+	// ItemParenClose is )
+	ItemParenClose
+	// ItemComma is ,
+	ItemComma
+	// ItemWildCard is *
+	ItemWildCard
+	// ItemLiteral1 is 'string in single quote'
+	ItemLiteral1
+	// ItemLiteral2 is "string in double quote"
+	ItemLiteral2
+	// ItemSemicolon is ;
+	ItemSemicolon
+	// ItemDot is .
+	ItemDot
 )
 
 var (
-	keywords = map[string]itemType{
-		"select": itemSelect,
-		"from":   itemFrom,
-		"where":  itemWhere,
-		"order":  itemOrder,
-		"by":     itemBy,
-		"or":     itemOr,
-		"and":    itemAnd,
-		//	"not":    itemNot,
-		"limit": itemLimit,
-		"asc":   itemAsc,
-		"desc":  itemDesc,
-		"like":  itemLike,
+	keywords = map[string]ItemType{
+		"select": ItemSelect,
+		"from":   ItemFrom,
+		"where":  ItemWhere,
+		"order":  ItemOrder,
+		"by":     ItemBy,
+		"or":     ItemOr,
+		"and":    ItemAnd,
+		//	"not":    ItemNot,
+		"limit": ItemLimit,
+		"asc":   ItemAsc,
+		"desc":  ItemDesc,
+		"like":  ItemLike,
 	}
 )
 
+// Item is an interface to handle the item
+type Item interface {
+	fmt.Stringer
+	Type() ItemType
+	Pos() int
+	Value() string
+}
+
 type item struct {
-	typ   itemType
+	typ   ItemType
 	pos   int
 	value string
+}
+
+func (i item) Type() ItemType {
+	return i.typ
+}
+
+func (i item) Pos() int {
+	return i.pos
+}
+
+func (i item) Value() string {
+	return i.value
 }
 
 func (i item) String() string {
@@ -116,7 +162,7 @@ func (l *lexer) backup() {
 }
 
 // emit passes an item back to the client.
-func (l *lexer) emit(t itemType) {
+func (l *lexer) emit(t ItemType) {
 	l.items <- item{t, l.start, l.input[l.start:l.pos]}
 	// Some items contain text internally. If so, count their newlines.
 	l.start = l.pos
@@ -146,7 +192,7 @@ func (l *lexer) acceptRun(valid string) {
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items <- item{itemError, l.start, fmt.Sprintf(format, args...)}
+	l.items <- item{ItemError, l.start, fmt.Sprintf(format, args...)}
 	return nil
 }
 
@@ -201,9 +247,9 @@ func lexStart(l *lexer) stateFn {
 	case r == ')':
 		return lexParenClose
 	case r == '"':
-		return createLiteralFunc('"', itemLiteral2)
+		return createLiteralFunc('"', ItemLiteral2)
 	case r == '\'':
-		return createLiteralFunc('\'', itemLiteral1)
+		return createLiteralFunc('\'', ItemLiteral1)
 	case r == ';':
 		return lexSemicolon
 	case r == ',':
@@ -219,33 +265,33 @@ func lexStart(l *lexer) stateFn {
 
 func lexWhiteSpace(l *lexer) stateFn {
 	l.acceptRun(" \n\t")
-	l.emit(itemWhiteSpace)
+	l.emit(ItemWhiteSpace)
 	return lexStart
 }
 
 func lexOp(l *lexer) stateFn {
 	r := l.next()
 	rn := l.peek()
-	var t itemType
+	var t ItemType
 	switch r {
 	case '>':
-		t = itemGreater
+		t = ItemGreater
 		if rn == '=' {
 			l.next()
-			t = itemGreaterEqual
+			t = ItemGreaterEqual
 		}
 	case '<':
-		t = itemLesser
+		t = ItemLesser
 		if rn == '=' {
 			l.next()
-			t = itemLesserEqual
+			t = ItemLesserEqual
 		} else if rn == '>' {
 			l.next()
-			t = itemNotEqual
+			t = ItemNotEqual
 		}
 
 	case '=':
-		t = itemEqual
+		t = ItemEqual
 	}
 	l.emit(t)
 	return lexStart
@@ -256,7 +302,7 @@ func lexAlpha(l *lexer) stateFn {
 	}
 	l.backup()
 	t := strings.ToLower(l.input[l.start:l.pos])
-	item := itemAlpha
+	item := ItemAlpha
 	if n, ok := keywords[t]; ok {
 		item = n
 	}
@@ -267,7 +313,7 @@ func lexAlpha(l *lexer) stateFn {
 func lexParenOpen(l *lexer) stateFn {
 	l.next()
 	l.parenDepth++
-	l.emit(itemParenOpen)
+	l.emit(ItemParenOpen)
 	return lexStart
 }
 
@@ -278,23 +324,23 @@ func lexParenClose(l *lexer) stateFn {
 		l.errorf("invalid ) ")
 		return nil
 	}
-	l.emit(itemParenClose)
+	l.emit(ItemParenClose)
 	return lexStart
 }
 
 func lexSemicolon(l *lexer) stateFn {
 	l.next()
-	l.emit(itemSemicolon)
+	l.emit(ItemSemicolon)
 	return lexStart
 }
 
 func lexComma(l *lexer) stateFn {
 	l.next()
-	l.emit(itemComma)
+	l.emit(ItemComma)
 	return lexStart
 }
 
-func createLiteralFunc(c rune, it itemType) stateFn {
+func createLiteralFunc(c rune, it ItemType) stateFn {
 	return func(l *lexer) stateFn {
 		l.next()
 		var escape bool
@@ -323,7 +369,7 @@ func createLiteralFunc(c rune, it itemType) stateFn {
 
 func lexWildCard(l *lexer) stateFn {
 	l.next()
-	l.emit(itemWildCard)
+	l.emit(ItemWildCard)
 	return lexStart
 }
 
@@ -343,13 +389,13 @@ func lexNumber(l *lexer) stateFn {
 		}
 	}
 	l.backup()
-	l.emit(itemNumber)
+	l.emit(ItemNumber)
 	return lexStart
 }
 
 func lexDot(l *lexer) stateFn {
 	l.next()
-	l.emit(itemDot)
+	l.emit(ItemDot)
 	return lexStart
 }
 

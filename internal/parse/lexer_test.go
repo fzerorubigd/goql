@@ -17,42 +17,42 @@ var (
 			Str: "SELECT * FROM test",
 			Items: []item{
 				item{
-					typ:   itemSelect,
+					typ:   ItemSelect,
 					pos:   0,
 					value: "SELECT",
 				},
 				item{
-					typ:   itemWhiteSpace,
+					typ:   ItemWhiteSpace,
 					pos:   6,
 					value: " ",
 				},
 				item{
-					typ:   itemWildCard,
+					typ:   ItemWildCard,
 					pos:   7,
 					value: "*",
 				},
 				item{
-					typ:   itemWhiteSpace,
+					typ:   ItemWhiteSpace,
 					pos:   8,
 					value: " ",
 				},
 				item{
-					typ:   itemFrom,
+					typ:   ItemFrom,
 					pos:   9,
 					value: "FROM",
 				},
 				item{
-					typ:   itemWhiteSpace,
+					typ:   ItemWhiteSpace,
 					pos:   13,
 					value: " ",
 				},
 				item{
-					typ:   itemAlpha,
+					typ:   ItemAlpha,
 					pos:   14,
 					value: "test",
 				},
 				item{
-					typ:   itemEOF,
+					typ:   ItemEOF,
 					pos:   0,
 					value: "",
 				},
@@ -75,61 +75,61 @@ func TestGeneralLexer(t *testing.T) {
 
 type lexTypeTest struct {
 	Sql   string
-	Items []itemType
+	Items []ItemType
 }
 
 var lexType = []lexTypeTest{
 	lexTypeTest{
 		Sql:   "SELECT STRING STRING FROM TABLE",
-		Items: []itemType{itemSelect, itemAlpha, itemAlpha, itemFrom, itemAlpha},
+		Items: []ItemType{ItemSelect, ItemAlpha, ItemAlpha, ItemFrom, ItemAlpha},
 	},
 	lexTypeTest{
 		Sql:   "< > <= >= <> =",
-		Items: []itemType{itemLesser, itemGreater, itemLesserEqual, itemGreaterEqual, itemNotEqual, itemEqual},
+		Items: []ItemType{ItemLesser, ItemGreater, ItemLesserEqual, ItemGreaterEqual, ItemNotEqual, ItemEqual},
 	},
 	lexTypeTest{
 		Sql:   ". , ; ( )",
-		Items: []itemType{itemDot, itemComma, itemSemicolon, itemParenOpen, itemParenClose},
+		Items: []ItemType{ItemDot, ItemComma, ItemSemicolon, ItemParenOpen, ItemParenClose},
 	},
 	lexTypeTest{
 		Sql:   "( ( ) error ", // space at the end is for test sake. in loop we need every thing with an space in it
-		Items: []itemType{itemParenOpen, itemParenOpen, itemParenClose, itemAlpha, itemError},
+		Items: []ItemType{ItemParenOpen, ItemParenOpen, ItemParenClose, ItemAlpha, ItemError},
 	},
 	lexTypeTest{
 		Sql:   ")",
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   "11 2.22 1233 23434343 33.99",
-		Items: []itemType{itemNumber, itemNumber, itemNumber, itemNumber, itemNumber},
+		Items: []ItemType{ItemNumber, ItemNumber, ItemNumber, ItemNumber, ItemNumber},
 	},
 	lexTypeTest{
 		Sql:   "11.00.2",
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   `"str" 'another' "''ssss''" '""sss"' 'ss\'' "\\" '\\' "\""`,
-		Items: []itemType{itemLiteral2, itemLiteral1, itemLiteral2, itemLiteral1, itemLiteral1, itemLiteral2, itemLiteral1, itemLiteral2},
+		Items: []ItemType{ItemLiteral2, ItemLiteral1, ItemLiteral2, ItemLiteral1, ItemLiteral1, ItemLiteral2, ItemLiteral1, ItemLiteral2},
 	},
 	lexTypeTest{
 		Sql:   `"str`,
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   `'str`,
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   `"str\c"`,
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   `'s\tr'`,
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 	lexTypeTest{
 		Sql:   `&`,
-		Items: []itemType{itemError},
+		Items: []ItemType{ItemError},
 	},
 }
 
@@ -144,7 +144,7 @@ func TestAlpha(t *testing.T) {
 		for j := range lexType[i].Items {
 			assert.Equal(t, lexType[i].Items[j], ll[j*2].typ)
 			if j*2+1 < len(ll) {
-				assert.Equal(t, itemWhiteSpace, ll[j*2+1].typ)
+				assert.Equal(t, ItemWhiteSpace, ll[j*2+1].typ)
 			}
 		}
 	}

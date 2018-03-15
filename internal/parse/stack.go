@@ -7,17 +7,17 @@ import (
 
 // Stack is very silly implementation of stack
 type Stack interface {
-	Pop() (item, error)
-	Push(...item)
-	Peek() (item, error)
+	Pop() (Item, error)
+	Push(...Item)
+	Peek() (Item, error)
 }
 
 type stack struct {
-	s    []item
+	s    []Item
 	lock *sync.Mutex
 }
 
-func (s *stack) Pop() (item, error) {
+func (s *stack) Pop() (Item, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -31,13 +31,13 @@ func (s *stack) Pop() (item, error) {
 	return res, nil
 }
 
-func (s *stack) Push(st ...item) {
+func (s *stack) Push(st ...Item) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.s = append(s.s, st...)
 }
 
-func (s *stack) Peek() (item, error) {
+func (s *stack) Peek() (Item, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -53,7 +53,7 @@ func (s *stack) Peek() (item, error) {
 // NewStack create a new stack with initial capacity
 func NewStack(capacity int) Stack {
 	return &stack{
-		s:    make([]item, 0, capacity),
+		s:    make([]Item, 0, capacity),
 		lock: &sync.Mutex{},
 	}
 }

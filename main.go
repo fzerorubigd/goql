@@ -1,9 +1,8 @@
 package main
 
 import (
-	"github.com/fzerorubigd/goql/internal/parse"
+	"github.com/fzerorubigd/goql/executor"
 	_ "github.com/fzerorubigd/goql/internal/runtime"
-
 	"github.com/kr/pretty"
 )
 
@@ -22,5 +21,5 @@ func main() {
 			pretty.Print(i)
 		}
 	*/
-	pretty.Print(parse.AST("SELECT * FROM TEST WHERE id = 2 AND name like 'test%' or x "))
+	pretty.Print(executor.Execute("net/http", `SELECT name FROM funcs where name = 'main'`))
 }
