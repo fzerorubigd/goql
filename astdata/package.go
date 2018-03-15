@@ -23,6 +23,20 @@ func (p *Package) Name() string {
 	return p.name
 }
 
+// Files return files of this package
+func (p *Package) Files() []*File {
+	return p.files
+}
+
+// Functions return the list of package functions
+func (p *Package) Functions() []*Function {
+	var fn []*Function
+	for i := range p.files {
+		fn = append(fn, p.files[i].functions...)
+	}
+	return fn
+}
+
 func parsePackageFullPath(path, folder string) (*Package, error) {
 	if p := getCache(folder); p != nil {
 		return p, nil

@@ -30,6 +30,8 @@ type Fields []Field
 type SelectStmt struct {
 	Table  string
 	Fields Fields
+
+	Where Stack
 }
 
 func getTokenString(t item) string {
@@ -100,6 +102,15 @@ func (ss *SelectStmt) parse(p *parser) error {
 		return fmt.Errorf("unexpected input %s , need table name", t)
 	}
 	ss.Table = getTokenString(t)
+
+	if w := p.scanIgnoreWhiteSpace(); w.typ == itemWhere {
+		p.reject()
+		var err error
+		ss.Where, err = p.where()
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

@@ -1,7 +1,6 @@
 package astdata
 
 import (
-	"fmt"
 	"go/ast"
 )
 
@@ -39,7 +38,6 @@ func (t *Type) File() *File {
 
 // newTypeName handle a type with name
 func newTypeName(p *Package, f *File, t *ast.TypeSpec, c *ast.CommentGroup) *Type {
-	fmt.Println(c.Text())
 	return &Type{
 		pkg:  p,
 		file: f,

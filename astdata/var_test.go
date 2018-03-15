@@ -7,7 +7,7 @@ import (
 )
 
 func TestVar(t *testing.T) {
-	p, err := ParsePackage("github.com/fzerorubigd/goql/internal/astdata/fixture")
+	p, err := ParsePackage("github.com/fzerorubigd/goql/astdata/fixture")
 	assert.NoError(t, err)
 
 	f, err := p.FindVariable("hi")

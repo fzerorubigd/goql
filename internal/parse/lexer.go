@@ -28,8 +28,8 @@ const (
 	itemBy
 	itemOr
 	itemAnd
+	//itemNot
 	itemLimit
-	itemIn
 	itemAsc
 	itemDesc
 	itemLike
@@ -63,11 +63,11 @@ var (
 		"by":     itemBy,
 		"or":     itemOr,
 		"and":    itemAnd,
-		"limit":  itemLimit,
-		"in":     itemIn,
-		"asc":    itemAsc,
-		"desc":   itemDesc,
-		"like":   itemLike,
+		//	"not":    itemNot,
+		"limit": itemLimit,
+		"asc":   itemAsc,
+		"desc":  itemDesc,
+		"like":  itemLike,
 	}
 )
 
