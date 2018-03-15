@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"text/tabwriter"
+
 	"github.com/fzerorubigd/goql/executor"
 	_ "github.com/fzerorubigd/goql/internal/runtime"
-	"github.com/kr/pretty"
 )
 
 func main() {
@@ -21,5 +25,23 @@ func main() {
 			pretty.Print(i)
 		}
 	*/
-	pretty.Print(executor.Execute("net/http", `SELECT name, receiver FROM funcs where receiver is null`))
+	row, data, err := executor.Execute("net/http", `SELECT * FROM funcs where receiver is null`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.Debug)
+	fmt.Fprint(w, "\t")
+
+	for i := range row {
+		fmt.Fprintf(w, "%s\t", row[i])
+	}
+
+	for i := range data {
+		fmt.Fprint(w, "\n\t")
+		for j := range data[i] {
+			fmt.Fprintf(w, "%v\t", data[i][j].Value())
+		}
+	}
+	w.Flush()
 }

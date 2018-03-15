@@ -51,7 +51,7 @@ func TestTables(t *testing.T) {
 	RegisterField("test", "c2", c2{})
 	RegisterField("test", "c3", c3{})
 
-	res := make(chan []interface{}, 3)
+	res := make(chan []Valuer, 3)
 
 	err := GetFields(tablet(1), "test", res, "c1", "c2", "c3")
 	assert.NoError(t, err)
@@ -65,7 +65,7 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	res = make(chan []interface{}, 3)
+	res = make(chan []Valuer, 3)
 
 	err = GetFields(tablet(1), "test", res, "c2", "c3")
 	assert.NoError(t, err)

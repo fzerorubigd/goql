@@ -15,16 +15,43 @@ type String struct {
 	Null   bool
 }
 
+// Value return the actual value (and nil)
+func (s String) Value() interface{} {
+	if s.Null {
+		return nil
+	}
+
+	return s.String
+}
+
 // Number is the number
 type Number struct {
 	Number float64
 	Null   bool
 }
 
+// Value return the actual value (and nil)
+func (n Number) Value() interface{} {
+	if n.Null {
+		return nil
+	}
+
+	return n.Number
+}
+
 // Bool is the boolean type
 type Bool struct {
 	Bool bool
 	Null bool
+}
+
+// Value return the actual value (and nil)
+func (b Bool) Value() interface{} {
+	if b.Null {
+		return nil
+	}
+
+	return b.Bool
 }
 
 const (
@@ -40,6 +67,11 @@ var (
 	tables = make(map[string]*table)
 	lock   = &sync.Mutex{}
 )
+
+// Valuer is a helper only for result type
+type Valuer interface {
+	Value() interface{}
+}
 
 // StringValuer is provider for a value for a table
 type StringValuer interface {
@@ -126,7 +158,7 @@ func RegisterField(t string, name string, valuer interface{}) {
 }
 
 // GetFields is the get field fro a table
-func GetFields(p interface{}, t string, res chan<- []interface{}, fields ...string) error {
+func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) error {
 	lock.Lock()
 	defer lock.Unlock()
 	tbl, ok := tables[t]
@@ -153,7 +185,7 @@ func GetFields(p interface{}, t string, res chan<- []interface{}, fields ...stri
 		defer close(res)
 		cache := tbl.data(p)
 		for i := range cache {
-			n := make([]interface{}, len(fields))
+			n := make([]Valuer, len(fields))
 			for f := range fields {
 				switch t := tbl.fields[fields[f]].(type) {
 				case StringValuer:

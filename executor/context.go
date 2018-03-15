@@ -45,22 +45,22 @@ func (c col) String() string {
 }
 
 // Execute the query
-func Execute(p, src string) ([][]interface{}, error) {
+func Execute(p, src string) ([]string, [][]structures.Valuer, error) {
 	var err error
 	ctx := &context{src: src, pk: p}
 	ctx.pkg, err = astdata.ParsePackage(p)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ctx.q, err = parse.AST(ctx.src)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 
 	tbl, err := structures.GetTable(ss.Table)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// which columns we should select?
@@ -81,11 +81,11 @@ func Execute(p, src string) ([][]interface{}, error) {
 			break
 		}
 		if ss.Fields[i].Table != "" && ss.Fields[i].Table != ss.Table {
-			return nil, fmt.Errorf("table %s is not in select, join is not supported", ss.Fields[i].Table)
+			return nil, nil, fmt.Errorf("table %s is not in select, join is not supported", ss.Fields[i].Table)
 		}
 		_, ok := tbl[ss.Fields[i].Column]
 		if !ok {
-			return nil, fmt.Errorf("field %s is not available in table %s", ss.Fields[i].Column, ss.Table)
+			return nil, nil, fmt.Errorf("field %s is not available in table %s", ss.Fields[i].Column, ss.Table)
 		}
 		if idx, ok := m[ss.Fields[i].Column]; ok {
 			// already added
@@ -113,7 +113,7 @@ func Execute(p, src string) ([][]interface{}, error) {
 				if v != "null" && v != "true" && v != "false" {
 					_, ok := tbl[v]
 					if !ok {
-						return nil, fmt.Errorf("field %s not found", v)
+						return nil, nil, fmt.Errorf("field %s not found", v)
 					}
 					if _, ok := m[v]; !ok {
 						m[v] = pos
@@ -128,7 +128,7 @@ func Execute(p, src string) ([][]interface{}, error) {
 				v := parse.GetTokenString(p)
 				_, ok := tbl[v]
 				if !ok {
-					return nil, fmt.Errorf("field %s not found", v)
+					return nil, nil, fmt.Errorf("field %s not found", v)
 				}
 				if _, ok := m[v]; !ok {
 					m[v] = pos
@@ -151,8 +151,8 @@ func Execute(p, src string) ([][]interface{}, error) {
 	return doQuery(ctx)
 }
 
-func filterColumn(show []int, items ...interface{}) []interface{} {
-	row := make([]interface{}, len(show))
+func filterColumn(show []int, items ...structures.Valuer) []structures.Valuer {
+	row := make([]structures.Valuer, len(show))
 	for idx := range show {
 		row[idx] = items[show[idx]]
 	}
@@ -160,7 +160,7 @@ func filterColumn(show []int, items ...interface{}) []interface{} {
 	return row
 }
 
-func callWhere(where getter, i []interface{}) (ok bool, err error) {
+func callWhere(where getter, i []structures.Valuer) (ok bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("error : %v", e)
@@ -170,21 +170,21 @@ func callWhere(where getter, i []interface{}) (ok bool, err error) {
 	return toBool(where(i)), nil
 }
 
-func doQuery(ctx *context) ([][]interface{}, error) {
-	res := make(chan []interface{}, 3)
+func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
+	res := make(chan []structures.Valuer, 3)
 	err := structures.GetFields(ctx.pkg, ctx.q.Statement.(*parse.SelectStmt).Table, res, ctx.fields...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	where, err := buildFilter(ctx.where)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	a := make([][]interface{}, 0)
+	a := make([][]structures.Valuer, 0)
 	for i := range res {
 		ok, err := callWhere(where, i)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if !ok {
 			continue
@@ -192,5 +192,5 @@ func doQuery(ctx *context) ([][]interface{}, error) {
 		a = append(a, filterColumn(ctx.show, i...))
 	}
 
-	return a, nil
+	return ctx.fields, a, nil
 }

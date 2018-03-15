@@ -17,7 +17,7 @@ const (
 
 type (
 	null       int
-	getter     func([]interface{}) interface{}
+	getter     func([]structures.Valuer) interface{}
 	opGetter   func(getter, getter) getter
 	operGetter func(parse.Item) getter
 )
@@ -64,7 +64,7 @@ func nullGetterGenerator(t parse.Item) getter {
 	if t.Type() != parse.ItemNull {
 		panic("runtime error")
 	}
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		return nullValue
 	}
 }
@@ -75,11 +75,11 @@ func alphaGetterGenerator(t parse.Item) getter {
 	}
 	switch strings.ToLower(t.Value()) {
 	case "true":
-		return func([]interface{}) interface{} {
+		return func([]structures.Valuer) interface{} {
 			return true
 		}
 	case "false":
-		return func([]interface{}) interface{} {
+		return func([]structures.Valuer) interface{} {
 			return false
 		}
 	default:
@@ -92,7 +92,7 @@ func fieldGetterGenerator(t parse.Item) getter {
 		panic("runtime error")
 	}
 	var idx = t.Pos()
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		switch t := in[idx].(type) {
 		case structures.String:
 			if t.Null {
@@ -120,7 +120,7 @@ func literal1GetterGenerator(t parse.Item) getter {
 		panic("runtime error")
 	}
 	var v = parse.GetTokenString(t)
-	return func([]interface{}) interface{} {
+	return func([]structures.Valuer) interface{} {
 		return v
 	}
 }
@@ -130,13 +130,13 @@ func numberGetterGenerator(t parse.Item) getter {
 		panic("runtime error")
 	}
 	v, _ := strconv.ParseFloat(t.Value(), 10)
-	return func([]interface{}) interface{} {
+	return func([]structures.Valuer) interface{} {
 		return v
 	}
 }
 
 func equal(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := r(in)
 		return lv == castAsLeft(lv, rv)
@@ -144,7 +144,7 @@ func equal(l getter, r getter) getter {
 }
 
 func notEqual(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := r(in)
 		return lv != castAsLeft(lv, rv)
@@ -152,19 +152,19 @@ func notEqual(l getter, r getter) getter {
 }
 
 func operOr(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		return toBool(l(in)) || toBool(r(in))
 	}
 }
 
 func operAnd(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		return toBool(l(in)) && toBool(r(in))
 	}
 }
 
 func operGreater(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -185,7 +185,7 @@ func operGreater(l getter, r getter) getter {
 }
 
 func operGreaterEqual(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -206,7 +206,7 @@ func operGreaterEqual(l getter, r getter) getter {
 }
 
 func operLesser(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -227,7 +227,7 @@ func operLesser(l getter, r getter) getter {
 }
 
 func operLesserEqual(l getter, r getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -249,7 +249,7 @@ func operLesserEqual(l getter, r getter) getter {
 
 func operIs(l getter, r getter) getter {
 	// TODO : there is a problem, if he right operand is a column with null value it works here :)
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		v := r(in)
 		n, ok := v.(null)
 		if !ok {
@@ -260,7 +260,7 @@ func operIs(l getter, r getter) getter {
 }
 
 func operNot(l getter) getter {
-	return func(in []interface{}) interface{} {
+	return func(in []structures.Valuer) interface{} {
 		d := l(in)
 		switch t := d.(type) {
 		case bool:
@@ -391,7 +391,7 @@ func buildFilter(w parse.Stack) (getter, error) {
 	)
 	t, err := w.Pop()
 	if err != nil {
-		return func([]interface{}) interface{} {
+		return func([]structures.Valuer) interface{} {
 			return true
 		}, nil
 	}
