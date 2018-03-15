@@ -157,16 +157,14 @@ func filterColumn(show []int, items ...interface{}) []interface{} {
 	return row
 }
 
-func toBool(in interface{}) bool {
-	switch t := in.(type) {
-	case bool:
-		return t
-	case string:
-		return t != ""
-	case float64:
-		return t != 0
-	}
-	panic(fmt.Sprintf("result from type %T", in))
+func callWhere(where getter, i []interface{}) (ok bool, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("error : %v", e)
+			ok = false
+		}
+	}()
+	return toBool(where(i)), nil
 }
 
 func doQuery(ctx *context) ([][]interface{}, error) {
@@ -181,7 +179,11 @@ func doQuery(ctx *context) ([][]interface{}, error) {
 	}
 	a := make([][]interface{}, 0)
 	for i := range res {
-		if !toBool(where(i)) {
+		ok, err := callWhere(where, i)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
 			continue
 		}
 		a = append(a, filterColumn(ctx.show, i...))

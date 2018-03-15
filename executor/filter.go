@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/fzerorubigd/goql/internal/parse"
 )
@@ -25,8 +26,14 @@ var (
 	}
 
 	opGetterMap = map[parse.ItemType]opGetter{
-		parse.ItemEqual:    equal,
-		parse.ItemNotEqual: notEqual,
+		parse.ItemEqual:        equal,
+		parse.ItemNotEqual:     notEqual,
+		parse.ItemOr:           operOr,
+		parse.ItemAnd:          operAnd,
+		parse.ItemGreater:      operGreater,
+		parse.ItemGreaterEqual: operGreaterEqual,
+		parse.ItemLesser:       operLesser,
+		parse.ItemLesserEqual:  operLesserEqual,
 	}
 )
 
@@ -78,14 +85,159 @@ func numberGetterGenerator(t parse.Item) getter {
 
 func equal(l getter, r getter) getter {
 	return func(in []interface{}) interface{} {
-		return l(in) == r(in)
+		lv := l(in)
+		rv := r(in)
+		return lv == castAsLeft(lv, rv)
 	}
 }
 
 func notEqual(l getter, r getter) getter {
 	return func(in []interface{}) interface{} {
-		return l(in) != r(in)
+		lv := l(in)
+		rv := r(in)
+		return lv != castAsLeft(lv, rv)
 	}
+}
+
+func operOr(l getter, r getter) getter {
+	return func(in []interface{}) interface{} {
+		return toBool(l(in)) || toBool(r(in))
+	}
+}
+
+func operAnd(l getter, r getter) getter {
+	return func(in []interface{}) interface{} {
+		return toBool(l(in)) && toBool(r(in))
+	}
+}
+
+func operGreater(l getter, r getter) getter {
+	return func(in []interface{}) interface{} {
+		lv := l(in)
+		rv := castAsLeft(lv, r(in))
+		switch lv.(type) {
+		case bool:
+			if lv.(bool) != rv.(bool) {
+				return lv.(bool)
+			}
+			return false
+		case string:
+			return strings.Compare(lv.(string), rv.(string)) > 0
+		case float64:
+			return lv.(float64) > rv.(float64)
+		}
+		panic("not supported type")
+	}
+}
+
+func operGreaterEqual(l getter, r getter) getter {
+	return func(in []interface{}) interface{} {
+		lv := l(in)
+		rv := castAsLeft(lv, r(in))
+		switch lv.(type) {
+		case bool:
+			if lv.(bool) != rv.(bool) {
+				return lv.(bool)
+			}
+			return true
+		case string:
+			return strings.Compare(lv.(string), rv.(string)) >= 0
+		case float64:
+			return lv.(float64) >= rv.(float64)
+		}
+		panic("not supported type")
+	}
+}
+
+func operLesser(l getter, r getter) getter {
+	return func(in []interface{}) (b interface{}) {
+		lv := l(in)
+		rv := castAsLeft(lv, r(in))
+		switch lv.(type) {
+		case bool:
+			if lv.(bool) != rv.(bool) {
+				return !lv.(bool)
+			}
+			return false
+		case string:
+			return strings.Compare(lv.(string), rv.(string)) < 0
+		case float64:
+			return lv.(float64) < rv.(float64)
+		}
+		panic("not supported type")
+	}
+}
+
+func operLesserEqual(l getter, r getter) getter {
+	return func(in []interface{}) interface{} {
+		lv := l(in)
+		rv := castAsLeft(lv, r(in))
+		switch lv.(type) {
+		case bool:
+			if lv.(bool) != rv.(bool) {
+				return !lv.(bool)
+			}
+			return true
+		case string:
+			return strings.Compare(lv.(string), rv.(string)) <= 0
+		case float64:
+			return lv.(float64) <= rv.(float64)
+		}
+		panic("not supported type")
+	}
+}
+
+func castAsLeft(l, r interface{}) interface{} {
+	switch l.(type) {
+	case bool:
+		return toBool(r)
+	case float64:
+		return toNumber(r)
+	case string:
+		return toString(r)
+	}
+	panic(fmt.Sprintf("%T is invalid type", l))
+}
+
+func toBool(in interface{}) bool {
+	switch t := in.(type) {
+	case bool:
+		return t
+	case string:
+		b, _ := strconv.ParseBool(t)
+		return b
+	case float64:
+		return t != 0
+	}
+	panic(fmt.Sprintf("result from type %T", in))
+}
+
+func toNumber(in interface{}) float64 {
+	switch t := in.(type) {
+	case bool:
+		if t {
+			return 1
+		}
+		return 0
+	case string:
+		f, _ := strconv.ParseFloat(t, 64)
+		return f
+	case float64:
+		return t
+	}
+	panic(fmt.Sprintf("result from type %T", in))
+}
+
+func toString(in interface{}) string {
+	switch t := in.(type) {
+	case bool:
+		return fmt.Sprint(t)
+	case string:
+		return t
+	case float64:
+		return fmt.Sprint(t)
+	}
+	panic(fmt.Sprintf("result from type %T", in))
 }
 
 func isOperator(t parse.ItemType) bool {
