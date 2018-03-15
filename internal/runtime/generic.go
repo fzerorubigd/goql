@@ -48,3 +48,13 @@ func (genericName) Value(in interface{}) structures.String {
 	p := in.(namer)
 	return structures.String{String: p.Name()}
 }
+
+type genericIsExported struct {
+}
+
+func (genericIsExported) Value(in interface{}) structures.Bool {
+	p := in.(namer).Name()
+	t := p[0] <= 'Z' && p[0] >= 'A'
+
+	return structures.Bool{Bool: t}
+}

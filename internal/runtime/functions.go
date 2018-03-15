@@ -55,6 +55,7 @@ func registerFunc() {
 	structures.RegisterField("funcs", "file", genericFileName{})
 	structures.RegisterField("funcs", "receiver", isMethodColumn{})
 	structures.RegisterField("funcs", "pointer_receiver", isPointerMethod{})
+	structures.RegisterField("funcs", "exported", genericIsExported{})
 }
 
 func init() {

@@ -37,6 +37,15 @@ func (p *Package) Functions() []*Function {
 	return fn
 }
 
+// Variables return the list of package variables
+func (p *Package) Variables() []*Variable {
+	var v []*Variable
+	for i := range p.files {
+		v = append(v, p.files[i].variables...)
+	}
+	return v
+}
+
 func parsePackageFullPath(path, folder string) (*Package, error) {
 	if p := getCache(folder); p != nil {
 		return p, nil
