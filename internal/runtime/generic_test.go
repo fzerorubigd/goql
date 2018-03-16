@@ -130,4 +130,19 @@ func TestProviders(t *testing.T) {
 		assert.IsType(t, &astdata.File{}, data[i])
 	}
 
+	vn4 := &constProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	}
+
+	data = vn4.Provide(p)
+	for i := range data {
+		assert.IsType(t, &astdata.Constant{}, data[i])
+	}
+	// cache?
+	data = vn4.Provide(p)
+	for i := range data {
+		assert.IsType(t, &astdata.Constant{}, data[i])
+	}
+
 }

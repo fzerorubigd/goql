@@ -55,6 +55,16 @@ func (p *Package) Types() []*Type {
 	return t
 }
 
+// Constants return the constants of the package
+func (p *Package) Constants() []*Constant {
+	var c []*Constant
+	for i := range p.files {
+		c = append(c, p.files[i].constants...)
+	}
+
+	return c
+}
+
 func parsePackageFullPath(path, folder string) (*Package, error) {
 	if p := getCache(folder); p != nil {
 		return p, nil
