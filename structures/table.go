@@ -118,15 +118,17 @@ func (c ColumnDef) Type() ValueType {
 type table struct {
 	name   string
 	fields map[string]ColumnDef // interface is one of the Valuer interface and not anything else
-	data   TableData
+	data   Table
 	lock   *sync.Mutex
 }
 
-// TableData is a callback to get table data from a package
-type TableData func(interface{}) []interface{}
+// Table is a callback to get table data from a package
+type Table interface {
+	Provide(interface{}) []interface{}
+}
 
 // RegisterTable is the function to handle registration of a table
-func RegisterTable(name string, data TableData) {
+func RegisterTable(name string, data Table) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -212,7 +214,7 @@ func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) e
 	// do concurrently
 	go func() {
 		defer close(res)
-		cache := tbl.data(p)
+		cache := tbl.data.Provide(p)
 		for i := range cache {
 			n := make([]Valuer, len(fields))
 			for f := range fields {

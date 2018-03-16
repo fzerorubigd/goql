@@ -35,17 +35,29 @@ func (c c3) Value(in interface{}) Bool {
 	return Bool{Bool: r%2 == 0}
 }
 
-func TestTables(t *testing.T) {
-	RegisterTable("test", func(in interface{}) []interface{} {
-		tbl := in.(tablet)
-		ln := int(tbl) * 10
-		res := make([]interface{}, ln)
-		for i := 0; i < ln; i++ {
-			res[i] = row(i)
-		}
+type provider struct {
+}
 
-		return res
-	})
+func (provider) Provide(in interface{}) []interface{} {
+	tbl := in.(tablet)
+	ln := int(tbl) * 10
+	res := make([]interface{}, ln)
+	for i := 0; i < ln; i++ {
+		res[i] = row(i)
+	}
+
+	return res
+}
+
+type nilProvider struct {
+}
+
+func (nilProvider) Provide(in interface{}) []interface{} {
+	return nil
+}
+
+func TestTables(t *testing.T) {
+	RegisterTable("test", provider{})
 
 	RegisterField("test", "c1", c1{})
 	RegisterField("test", "c2", c2{})
@@ -91,7 +103,7 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	assert.Panics(t, func() { RegisterTable("test", func(in interface{}) []interface{} { return nil }) })
+	assert.Panics(t, func() { RegisterTable("test", nilProvider{}) })
 	assert.Panics(t, func() { RegisterField("not-exist", "test", c1{}) })
 	assert.Panics(t, func() { RegisterField("test", "c1", c1{}) })
 	assert.Panics(t, func() { RegisterField("test", "c11", 10) })

@@ -7,17 +7,17 @@ import (
 	"github.com/fzerorubigd/goql/structures"
 )
 
-var (
-	filesCache = make(map[*astdata.Package][]interface{})
-	fileLock   = &sync.Mutex{}
-)
+type filesProvider struct {
+	cache map[string][]interface{}
+	lock  *sync.Mutex
+}
 
-func filesProvider(in interface{}) []interface{} {
-	fileLock.Lock()
-	defer fileLock.Unlock()
+func (f *filesProvider) Provide(in interface{}) []interface{} {
+	f.lock.Lock()
+	defer f.lock.Unlock()
 
 	p := in.(*astdata.Package)
-	if d, ok := filesCache[p]; ok {
+	if d, ok := f.cache[p.Path()]; ok {
 		return d
 	}
 	fs := p.Files()
@@ -25,7 +25,7 @@ func filesProvider(in interface{}) []interface{} {
 	for i := range fs {
 		res[i] = fs[i]
 	}
-	filesCache[p] = res
+	f.cache[p.Path()] = res
 	return res
 }
 
@@ -39,7 +39,10 @@ func (nameColumn) Value(in interface{}) structures.String {
 
 func registerFiles() {
 	// register files
-	structures.RegisterTable("files", filesProvider)
+	structures.RegisterTable("files", &filesProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	})
 	structures.RegisterField("files", "name", nameColumn{})
 	structures.RegisterField("files", "pkg_name", genericPackageName{})
 	structures.RegisterField("files", "pkg_path", genericPackagePath{})

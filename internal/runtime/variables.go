@@ -7,30 +7,33 @@ import (
 	"github.com/fzerorubigd/goql/structures"
 )
 
-var (
-	varCache = make(map[*astdata.Package][]interface{})
-	varLock  = &sync.Mutex{}
-)
+type variableProvider struct {
+	cache map[string][]interface{}
+	lock  *sync.Mutex
+}
 
-func variablesProvider(in interface{}) []interface{} {
-	varLock.Lock()
-	defer varLock.Unlock()
+func (v *variableProvider) Provide(in interface{}) []interface{} {
+	v.lock.Lock()
+	defer v.lock.Unlock()
 
 	p := in.(*astdata.Package)
-	if d, ok := varCache[p]; ok {
+	if d, ok := v.cache[p.Path()]; ok {
 		return d
 	}
-	v := p.Variables()
-	res := make([]interface{}, len(v))
-	for i := range v {
-		res[i] = v[i]
+	va := p.Variables()
+	res := make([]interface{}, len(va))
+	for i := range va {
+		res[i] = va[i]
 	}
-	varCache[p] = res
+	v.cache[p.Path()] = res
 	return res
 }
 
 func registerVariable() {
-	structures.RegisterTable("vars", variablesProvider)
+	structures.RegisterTable("vars", &variableProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	})
 
 	structures.RegisterField("vars", "name", genericName{})
 	structures.RegisterField("vars", "pkg_name", genericPackageName{})

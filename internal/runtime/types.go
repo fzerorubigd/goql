@@ -7,17 +7,17 @@ import (
 	"github.com/fzerorubigd/goql/structures"
 )
 
-var (
-	typesCache = make(map[*astdata.Package][]interface{})
-	typesLock  = &sync.Mutex{}
-)
+type typeProvider struct {
+	cache map[string][]interface{}
+	lock  *sync.Mutex
+}
 
-func typesProvider(in interface{}) []interface{} {
-	typesLock.Lock()
-	defer typesLock.Unlock()
+func (t *typeProvider) Provide(in interface{}) []interface{} {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	p := in.(*astdata.Package)
-	if d, ok := typesCache[p]; ok {
+	if d, ok := t.cache[p.Path()]; ok {
 		return d
 	}
 	fs := p.Types()
@@ -25,12 +25,15 @@ func typesProvider(in interface{}) []interface{} {
 	for i := range fs {
 		res[i] = fs[i]
 	}
-	typesCache[p] = res
+	t.cache[p.Path()] = res
 	return res
 }
 
 func registerTypes() {
-	structures.RegisterTable("types", typesProvider)
+	structures.RegisterTable("types", &typeProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	})
 
 	structures.RegisterField("types", "name", genericName{})
 	structures.RegisterField("types", "pkg_name", genericPackageName{})

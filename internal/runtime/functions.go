@@ -7,17 +7,17 @@ import (
 	"github.com/fzerorubigd/goql/structures"
 )
 
-var (
-	funcCache = make(map[*astdata.Package][]interface{})
-	funcLock  = &sync.Mutex{}
-)
+type functionProvider struct {
+	cache map[string][]interface{}
+	lock  *sync.Mutex
+}
 
-func functionsProvider(in interface{}) []interface{} {
-	funcLock.Lock()
-	defer funcLock.Unlock()
+func (f *functionProvider) Provide(in interface{}) []interface{} {
+	f.lock.Lock()
+	defer f.lock.Unlock()
 
 	p := in.(*astdata.Package)
-	if d, ok := funcCache[p]; ok {
+	if d, ok := f.cache[p.Path()]; ok {
 		return d
 	}
 	fn := p.Functions()
@@ -25,7 +25,7 @@ func functionsProvider(in interface{}) []interface{} {
 	for i := range fn {
 		res[i] = fn[i]
 	}
-	funcCache[p] = res
+	f.cache[p.Path()] = res
 	return res
 }
 
@@ -50,7 +50,10 @@ func (isPointerMethod) Value(in interface{}) structures.Bool {
 }
 
 func registerFunc() {
-	structures.RegisterTable("funcs", functionsProvider)
+	structures.RegisterTable("funcs", &functionProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	})
 
 	structures.RegisterField("funcs", "name", genericName{})
 	structures.RegisterField("funcs", "pkg_name", genericPackageName{})
