@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/executor"
 	_ "github.com/fzerorubigd/goql/internal/runtime"
 	"github.com/fzerorubigd/goql/structures"
@@ -28,7 +29,12 @@ func formatCol(v []structures.Valuer) []string {
 func main() {
 	pflag.Parse()
 	sql := strings.Join(pflag.Args(), " ")
-	row, data, err := executor.Execute(*pkg, sql)
+	p, err := astdata.ParsePackage(*pkg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	row, data, err := executor.Execute(p, sql)
 	if err != nil {
 		log.Fatal(err)
 	}

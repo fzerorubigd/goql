@@ -63,7 +63,9 @@ func TestTables(t *testing.T) {
 	RegisterField("test", "c2", c2{})
 	RegisterField("test", "c3", c3{})
 
-	assert.Panics(t, func() { GetTable("not-exist") })
+	tt, err := GetTable("not-exists")
+	assert.Error(t, err)
+	assert.Nil(t, tt)
 
 	tbl, err := GetTable("test")
 	assert.NoError(t, err)

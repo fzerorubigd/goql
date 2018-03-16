@@ -147,7 +147,7 @@ func RegisterTable(name string, data Table) {
 func GetTable(t string) (map[string]ColumnDef, error) {
 	tbl, ok := tables[t]
 	if !ok {
-		panic(fmt.Sprintf("table %s is not available", t))
+		return nil, fmt.Errorf("table %s is not available", t)
 	}
 
 	return tbl.fields, nil
