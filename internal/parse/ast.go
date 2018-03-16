@@ -26,12 +26,25 @@ type Field struct {
 // Fields is the collection of fields with order
 type Fields []Field
 
+// Order is one order in the order array
+type Order struct {
+	Field string
+	Index int
+	DESC  bool
+}
+
+// Orders group of orders
+type Orders []Order
+
 // SelectStmt is the select query
 type SelectStmt struct {
 	Table  string
 	Fields Fields
 
 	Where Stack
+	Order Orders
+	Start int
+	Count int
 }
 
 // GetTokenString is a simple function to handle the quoted strings

@@ -1,6 +1,9 @@
 package parse
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 const (
 	whereStart = 1 << iota
@@ -94,6 +97,35 @@ func (ss *SelectStmt) parse(p *parser) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		p.reject()
+	}
+
+	if w := p.scanIgnoreWhiteSpace(); w.typ == ItemOrder {
+		p.reject()
+		var err error
+		ss.Order, err = p.order()
+		if err != nil {
+			return err
+		}
+	} else {
+		p.reject()
+	}
+
+	ss.Start, ss.Count = -1, -1
+	if w := p.scanIgnoreWhiteSpace(); w.typ == ItemLimit {
+		p.reject()
+		var err error
+		ss.Start, ss.Count, err = p.limit()
+		if err != nil {
+			return err
+		}
+	} else {
+		p.reject()
+	}
+
+	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemEOF {
+		return fmt.Errorf("unexpected token %s", w)
 	}
 
 	return nil
@@ -193,4 +225,75 @@ bigLoop:
 		final.Push(o)
 	}
 	return final, nil
+}
+
+func (p *parser) order() (Orders, error) {
+	var res Orders
+	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemOrder {
+		return nil, fmt.Errorf("invalid token, need order, got %s", w)
+	}
+
+	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemBy {
+		return nil, fmt.Errorf("invalid token, need by after order , got %s", w)
+	}
+
+	for {
+		w := p.scanIgnoreWhiteSpace()
+		if w.typ != ItemAlpha && w.typ != ItemLiteral2 {
+			return nil, fmt.Errorf("need column name got %s", w)
+		}
+		val := GetTokenString(w)
+		res = append(res, Order{
+			Field: val,
+		})
+		ahead := p.scanIgnoreWhiteSpace()
+		if ahead.typ == ItemAsc || ahead.typ == ItemDesc {
+			if ahead.typ == ItemDesc {
+				res[len(res)-1].DESC = true
+			}
+			ahead = p.scanIgnoreWhiteSpace()
+		}
+
+		if ahead.typ != ItemComma {
+			p.reject()
+			break
+		}
+	}
+	return res, nil
+}
+
+func (p *parser) limit() (int, int, error) {
+	var start, count int64
+	var err error
+	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemLimit {
+		return 0, 0, fmt.Errorf("invalid token, need limit, get %s", w)
+	}
+
+	w := p.scanIgnoreWhiteSpace()
+	if w.typ != ItemNumber {
+		return 0, 0, fmt.Errorf("limit need a number but got %s", w)
+	}
+
+	start, err = strconv.ParseInt(w.value, 10, 32)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error on converting string to int : %s", err)
+	}
+
+	w = p.scanIgnoreWhiteSpace()
+	if w.typ != ItemComma {
+		p.reject()
+		// one number means count
+		return 0, int(start), nil
+	}
+
+	w = p.scanIgnoreWhiteSpace()
+	if w.typ != ItemNumber {
+		return 0, 0, fmt.Errorf("need the second limit number got %s", w)
+	}
+	count, err = strconv.ParseInt(w.value, 10, 32)
+	if err != nil {
+		return 0, 0, fmt.Errorf("error on converting string to int : %s", err)
+	}
+
+	return int(start), int(count), nil
 }

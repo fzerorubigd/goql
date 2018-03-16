@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/fzerorubigd/goql/astdata"
@@ -97,6 +98,19 @@ func Execute(p, src string) ([]string, [][]structures.Valuer, error) {
 		pos++
 	}
 
+	for i := range ss.Order {
+		o := ss.Order[i]
+		_, ok := tbl[o.Field]
+		if !ok {
+			return nil, nil, fmt.Errorf("field %s not found (order by)", o.Field)
+		}
+		if _, ok := m[o.Field]; !ok {
+			m[o.Field] = pos
+			pos++
+		}
+		ss.Order[i].Index = m[o.Field]
+	}
+
 	ctx.where = parse.NewStack(0)
 	// which column are needed in where?
 	if st := ss.Where; st != nil {
@@ -113,7 +127,7 @@ func Execute(p, src string) ([]string, [][]structures.Valuer, error) {
 				if v != "null" && v != "true" && v != "false" {
 					_, ok := tbl[v]
 					if !ok {
-						return nil, nil, fmt.Errorf("field %s not found", v)
+						return nil, nil, fmt.Errorf("field %s not found (where)", v)
 					}
 					if _, ok := m[v]; !ok {
 						m[v] = pos
@@ -172,7 +186,8 @@ func callWhere(where getter, i []structures.Valuer) (ok bool, err error) {
 
 func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 	res := make(chan []structures.Valuer, 3)
-	err := structures.GetFields(ctx.pkg, ctx.q.Statement.(*parse.SelectStmt).Table, res, ctx.fields...)
+	ss := ctx.q.Statement.(*parse.SelectStmt)
+	err := structures.GetFields(ctx.pkg, ss.Table, res, ctx.fields...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -190,6 +205,25 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 			continue
 		}
 		a = append(a, filterColumn(ctx.show, i...))
+	}
+
+	// sort
+	s := &sortMe{
+		data:  a,
+		order: ss.Order,
+	}
+	sort.Sort(s)
+
+	a = s.data
+	if ss.Count >= 0 && ss.Start >= 0 {
+		l := len(a)
+		if ss.Start >= l {
+			a = [][]structures.Valuer{}
+		} else if ss.Start+ss.Count >= l {
+			a = a[ss.Start:] // to the end
+		} else {
+			a = a[ss.Start : ss.Start+ss.Count]
+		}
 	}
 
 	return ctx.fields, a, nil
