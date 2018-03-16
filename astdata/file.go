@@ -73,6 +73,11 @@ func (f *File) FileName() string {
 	return filepath.Base(f.fileName)
 }
 
+// Docs return the documents of the file
+func (f *File) Docs() Docs {
+	return f.docs
+}
+
 // ParseFile try to parse a single file for its annotations
 func ParseFile(src string, p *Package) (*File, error) {
 	fset := token.NewFileSet()
