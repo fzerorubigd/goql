@@ -43,6 +43,8 @@ func registerFiles() {
 	structures.RegisterField("files", "name", nameColumn{})
 	structures.RegisterField("files", "pkg_name", genericPackageName{})
 	structures.RegisterField("files", "pkg_path", genericPackagePath{})
+	structures.RegisterField("files", "docs", genericDoc{})
+
 }
 
 func init() {

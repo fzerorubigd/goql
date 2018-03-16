@@ -37,6 +37,7 @@ func registerTypes() {
 	structures.RegisterField("types", "pkg_path", genericPackagePath{})
 	structures.RegisterField("types", "file", genericFileName{})
 	structures.RegisterField("types", "exported", genericIsExported{})
+	structures.RegisterField("types", "docs", genericDoc{})
 }
 
 func init() {

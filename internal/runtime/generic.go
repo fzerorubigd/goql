@@ -17,6 +17,10 @@ type namer interface {
 	Name() string
 }
 
+type docer interface {
+	Docs() astdata.Docs
+}
+
 type genericFileName struct {
 }
 
@@ -57,4 +61,14 @@ func (genericIsExported) Value(in interface{}) structures.Bool {
 	t := p[0] <= 'Z' && p[0] >= 'A'
 
 	return structures.Bool{Bool: t}
+}
+
+type genericDoc struct{}
+
+func (genericDoc) Value(in interface{}) structures.String {
+	p := in.(docer).Docs()
+	if len(p) == 0 {
+		return structures.String{Null: true}
+	}
+	return structures.String{String: p.String()}
 }

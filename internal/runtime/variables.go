@@ -37,6 +37,7 @@ func registerVariable() {
 	structures.RegisterField("vars", "pkg_path", genericPackagePath{})
 	structures.RegisterField("vars", "file", genericFileName{})
 	structures.RegisterField("vars", "exported", genericIsExported{})
+	structures.RegisterField("vars", "docs", genericDoc{})
 }
 
 func init() {
