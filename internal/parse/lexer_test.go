@@ -66,9 +66,9 @@ func TestGeneralLexer(t *testing.T) {
 		l := lex(lexerTest[i].Str)
 		for _, exp := range lexerTest[i].Items {
 			item := l.nextItem()
-			assert.Equal(t, exp.value, item.value)
-			assert.Equal(t, exp.pos, item.pos)
-			assert.Equal(t, exp.typ, item.typ)
+			assert.Equal(t, exp.value, item.Value())
+			assert.Equal(t, exp.pos, item.Pos())
+			assert.Equal(t, exp.typ, item.Type())
 		}
 	}
 }
@@ -148,4 +148,12 @@ func TestAlpha(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMisc(t *testing.T) {
+	w := item{
+		typ: ItemAlpha,
+	}
+	assert.Panics(t, func() { assertType(w, ItemWhiteSpace) })
+	assert.NotPanics(t, func() { assertType(w, ItemAlpha) })
 }

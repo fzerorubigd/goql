@@ -133,9 +133,7 @@ func (ss *SelectStmt) parse(p *parser) error {
 
 func (p *parser) where() (Stack, error) {
 	w := p.scanIgnoreWhiteSpace()
-	if w.typ != ItemWhere {
-		return nil, fmt.Errorf("expect WHERE but got %s", w)
-	}
+	assertType(w, ItemWhere)
 
 	op := NewStack(0)
 	final := NewStack(0)
@@ -186,9 +184,7 @@ bigLoop:
 
 			if not {
 				top, err := op.Pop()
-				if err != nil || top.Type() != ItemNot {
-					panic("why")
-				}
+				assertTrue(err == nil && top.Type() == ItemNot, "why")
 				final.Push(top)
 			}
 
@@ -204,9 +200,7 @@ bigLoop:
 
 			for {
 				o, err := op.Pop()
-				if err != nil {
-					return nil, fmt.Errorf("invalid ')")
-				}
+				assertTrue(err == nil, "why no op in stack?")
 				if o.Type() == ItemParenOpen {
 					break
 				}
@@ -229,9 +223,8 @@ bigLoop:
 
 func (p *parser) order() (Orders, error) {
 	var res Orders
-	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemOrder {
-		return nil, fmt.Errorf("invalid token, need order, got %s", w)
-	}
+	w := p.scanIgnoreWhiteSpace()
+	assertType(w, ItemOrder)
 
 	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemBy {
 		return nil, fmt.Errorf("invalid token, need by after order , got %s", w)
@@ -265,11 +258,10 @@ func (p *parser) order() (Orders, error) {
 func (p *parser) limit() (int, int, error) {
 	var start, count int64
 	var err error
-	if w := p.scanIgnoreWhiteSpace(); w.typ != ItemLimit {
-		return 0, 0, fmt.Errorf("invalid token, need limit, get %s", w)
-	}
-
 	w := p.scanIgnoreWhiteSpace()
+	assertType(w, ItemLimit)
+
+	w = p.scanIgnoreWhiteSpace()
 	if w.typ != ItemNumber {
 		return 0, 0, fmt.Errorf("limit need a number but got %s", w)
 	}

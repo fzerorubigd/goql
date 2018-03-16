@@ -14,7 +14,7 @@ type context struct {
 	src    string
 	pk     string
 	pkg    *astdata.Package
-	q      parse.Query
+	q      *parse.Query
 	fields []string
 	show   []int
 	where  parse.Stack

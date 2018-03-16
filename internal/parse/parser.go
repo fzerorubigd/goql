@@ -31,17 +31,17 @@ func (p *parser) reject() {
 }
 
 // AST return the abstract source tree for given query
-func AST(q string) (Query, error) {
+func AST(q string) (*Query, error) {
 	p := &parser{
 		l: lex(q),
 	}
 	s, err := newStatement(p)
 	if err != nil {
 		p.l.drain() // make sure the lexer is terminated
-		return Query{}, err
+		return nil, err
 	}
 
-	return Query{
+	return &Query{
 		Statement: s,
 	}, nil
 }

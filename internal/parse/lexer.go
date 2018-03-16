@@ -135,6 +135,16 @@ func (i item) String() string {
 	return fmt.Sprintf("pos %d, token %s", i.pos, i.value)
 }
 
+func assertTrue(in bool, msg string) {
+	if !in {
+		panic(msg)
+	}
+}
+
+func assertType(i Item, t ItemType) {
+	assertTrue(i.Type() == t, fmt.Sprintf("assertion failed, type is %d want %d", i.Type(), t))
+}
+
 type lexer struct {
 	input string // input string
 	start int    // start position for the current lexeme
@@ -176,6 +186,7 @@ func (l *lexer) emit(t ItemType) {
 	l.start = l.pos
 }
 
+/*
 // ignore skips over the pending input before this point.
 func (l *lexer) ignore() {
 	l.start = l.pos
@@ -189,6 +200,7 @@ func (l *lexer) accept(valid string) bool {
 	l.backup()
 	return false
 }
+*/
 
 // acceptRun consumes a run of runes from the valid set.
 func (l *lexer) acceptRun(valid string) {

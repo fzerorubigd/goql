@@ -50,13 +50,25 @@ type SelectStmt struct {
 // GetTokenString is a simple function to handle the quoted strings
 func GetTokenString(t Item) string {
 	v := t.Value()
-	if t.Type() == ItemLiteral1 {
-		v = strings.Trim(strings.Replace(t.Value(), `\'`, `'`, -1), "'")
+	var l string
+	var c byte
+	switch t.Type() {
+	case ItemLiteral1:
+		l = `'`
+		c = '\''
+	case ItemLiteral2:
+		l = `"`
+		c = '"'
+	default:
+		return v
 	}
-	if t.Type() == ItemLiteral2 {
-		v = strings.Trim(strings.Replace(t.Value(), `\"`, `"`, -1), "\"")
+	v = strings.Replace(t.Value(), `\`+l, l, -1)
+
+	if len(v) < 2 || v[0] != c || v[len(v)-1] != c {
+		panic("un-terminated literal")
 	}
-	return v
+
+	return v[1 : len(v)-1]
 }
 
 func newStatement(p *parser) (Statement, error) {
