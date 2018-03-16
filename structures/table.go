@@ -78,8 +78,8 @@ type StringValuer interface {
 	Value(interface{}) String
 }
 
-// IntValuer is the integer valuer
-type IntValuer interface {
+// NumberValuer is the integer valuer
+type NumberValuer interface {
 	Value(interface{}) Number
 }
 
@@ -88,10 +88,36 @@ type BoolValuer interface {
 	Value(interface{}) Bool
 }
 
+// ColumnDef is the helper for column definition
+type ColumnDef struct {
+	name  string
+	typ   interface{}
+	order int
+}
+
+// Order return order of registration
+func (c ColumnDef) Order() int {
+	return c.order
+}
+
+// Type return the type of value of column
+func (c ColumnDef) Type() ValueType {
+	switch c.typ.(type) {
+	case StringValuer:
+		return ValueTypeString
+	case NumberValuer:
+		return ValueTypeNumber
+	case BoolValuer:
+		return ValueTypeBool
+	default:
+		panic("invalid valuer!")
+	}
+}
+
 // Table is the single table in system
 type table struct {
 	name   string
-	fields map[string]interface{} // interface is one of the Valuer interface and not anything else
+	fields map[string]ColumnDef // interface is one of the Valuer interface and not anything else
 	data   TableData
 	lock   *sync.Mutex
 }
@@ -110,51 +136,54 @@ func RegisterTable(name string, data TableData) {
 	tables[name] = &table{
 		name:   name,
 		data:   data,
-		fields: make(map[string]interface{}),
+		fields: make(map[string]ColumnDef),
 		lock:   &sync.Mutex{},
 	}
 }
 
 // GetTable return the table definition
-func GetTable(t string) (map[string]ValueType, error) {
+func GetTable(t string) (map[string]ColumnDef, error) {
 	tbl, ok := tables[t]
 	if !ok {
 		panic(fmt.Sprintf("table %s is not available", t))
 	}
-	res := make(map[string]ValueType)
-	for i := range tbl.fields {
-		switch tbl.fields[i].(type) {
-		case BoolValuer:
-			res[i] = ValueTypeBool
-		case IntValuer:
-			res[i] = ValueTypeNumber
-		case StringValuer:
-			res[i] = ValueTypeString
-		}
-	}
-	return res, nil
+
+	return tbl.fields, nil
 }
 
 // RegisterField is the field registration
 func RegisterField(t string, name string, valuer interface{}) {
+	lock.Lock()
+	defer lock.Unlock()
+
 	tbl, ok := tables[t]
 	if !ok {
 		panic(fmt.Sprintf("table %s is not available", t))
 	}
-
+	max := -1
+	for i := range tbl.fields {
+		if tbl.fields[i].order > max {
+			max = tbl.fields[i].order
+		}
+	}
+	max++
 	if _, ok := tbl.fields[name]; ok {
 		panic(fmt.Sprintf("table %s is already have field %s", t, name))
 	}
 
 	switch valuer.(type) {
 	case BoolValuer:
-	case IntValuer:
+	case NumberValuer:
 	case StringValuer:
 	default:
 		panic(fmt.Sprintf("valuer is not a valid valuer, its is %T", valuer))
 	}
 
-	tbl.fields[name] = valuer
+	tbl.fields[name] = ColumnDef{
+		typ:   valuer,
+		name:  name,
+		order: max,
+	}
 }
 
 // GetFields is the get field fro a table
@@ -187,10 +216,10 @@ func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) e
 		for i := range cache {
 			n := make([]Valuer, len(fields))
 			for f := range fields {
-				switch t := tbl.fields[fields[f]].(type) {
+				switch t := tbl.fields[fields[f]].typ.(type) {
 				case StringValuer:
 					n[f] = t.Value(cache[i])
-				case IntValuer:
+				case NumberValuer:
 					n[f] = t.Value(cache[i])
 				case BoolValuer:
 					n[f] = t.Value(cache[i])

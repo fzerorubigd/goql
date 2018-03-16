@@ -73,11 +73,9 @@ func Execute(p, src string) ([]string, [][]structures.Valuer, error) {
 			// all column, no join support so ignore the rest
 			m = make(map[string]int)
 			ctx.show = make([]int, len(tbl))
-			pos = 0
 			for j := range tbl {
-				m[j] = pos
-				ctx.show[pos] = pos
-				pos++
+				m[j] = tbl[j].Order()
+				ctx.show[tbl[j].Order()] = tbl[j].Order()
 			}
 			break
 		}
@@ -204,7 +202,7 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 		if !ok {
 			continue
 		}
-		a = append(a, filterColumn(ctx.show, i...))
+		a = append(a, i)
 	}
 
 	// sort
@@ -226,5 +224,15 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 		}
 	}
 
-	return ctx.fields, a, nil
+	// reduces columns to selected columns only
+	for i := range a {
+		a[i] = filterColumn(ctx.show, a[i]...)
+	}
+
+	fields := make([]string, len(ctx.show))
+	for i := range ctx.show {
+		fields[i] = ctx.fields[ctx.show[i]]
+	}
+
+	return fields, a, nil
 }
