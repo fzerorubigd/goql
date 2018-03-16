@@ -1,3 +1,5 @@
+// Package fixture is a fixture used for testing astdata package
+// do not remove/change the function unless the tests are fixed
 package fixture
 
 import (
