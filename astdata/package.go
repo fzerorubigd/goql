@@ -65,6 +65,15 @@ func (p *Package) Constants() []*Constant {
 	return c
 }
 
+// Imports return all imports of the package
+func (p *Package) Imports() []*Import {
+	var im []*Import
+	for i := range p.files {
+		im = append(im, p.files[i].imports...)
+	}
+	return im
+}
+
 func parsePackageFullPath(path, folder string) (*Package, error) {
 	if p := getCache(folder); p != nil {
 		return p, nil

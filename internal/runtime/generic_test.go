@@ -64,6 +64,18 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, structures.String{String: "alpha"}, isMethodColumn{}.Value(m2))
 	assert.Equal(t, structures.Bool{Bool: true}, isPointerMethod{}.Value(m2))
 
+	im1, err := p.FindImport("net/http")
+	assert.NoError(t, err)
+	assert.Equal(t, structures.String{Null: true}, canonicalCol{}.Value(im1))
+	assert.Equal(t, structures.String{String: "net/http"}, pathCol{}.Value(im1))
+	assert.Equal(t, structures.String{String: "http"}, packageCol{}.Value(im1))
+
+	im2, err := p.FindImport("context")
+	assert.NoError(t, err)
+	assert.Equal(t, structures.String{String: "ctx"}, canonicalCol{}.Value(im2))
+	assert.Equal(t, structures.String{String: "context"}, pathCol{}.Value(im2))
+	assert.Equal(t, structures.String{String: "context"}, packageCol{}.Value(im2))
+
 }
 
 func TestProviders(t *testing.T) {
@@ -145,4 +157,18 @@ func TestProviders(t *testing.T) {
 		assert.IsType(t, &astdata.Constant{}, data[i])
 	}
 
+	vn5 := &importProvider{
+		cache: make(map[string][]interface{}),
+		lock:  &sync.Mutex{},
+	}
+
+	data = vn5.Provide(p)
+	for i := range data {
+		assert.IsType(t, &astdata.Import{}, data[i])
+	}
+	// cache?
+	data = vn5.Provide(p)
+	for i := range data {
+		assert.IsType(t, &astdata.Import{}, data[i])
+	}
 }

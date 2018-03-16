@@ -10,7 +10,7 @@ func (f *File) FindImport(pkg string) (*Import, error) {
 		return nil, fmt.Errorf("import with path _/. or empty is invalid")
 	}
 	for i := range f.imports {
-		if f.imports[i].TargetPackage() == pkg || f.imports[i].Canonical() == pkg || f.imports[i].TargetPath() == pkg {
+		if f.imports[i].TargetPackage() == pkg || f.imports[i].Canonical() == pkg || f.imports[i].Path() == pkg {
 			return f.imports[i], nil
 		}
 	}

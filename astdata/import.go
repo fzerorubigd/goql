@@ -78,9 +78,6 @@ func peekPackageName(pkg string, base ...string) (string, string) {
 
 func (i *Import) peek() {
 	i.targetPkg, i.folder = peekPackageName(i.path, i.pkg.path)
-	if i.canonical == "" {
-		i.canonical = i.targetPkg
-	}
 }
 
 // Package is the package where the import is inside it
@@ -102,8 +99,8 @@ func (i *Import) TargetPackage() string {
 	return i.targetPkg
 }
 
-// TargetPath is the target package in full path format
-func (i *Import) TargetPath() string {
+// Path is the target package in full path format
+func (i *Import) Path() string {
 	return i.path
 }
 
@@ -119,10 +116,6 @@ func (i *Import) Folder() string {
 // Canonical is the canonical package name, if the package not imported with another name, the package name and
 // canonical name are same +lazy
 func (i *Import) Canonical() string {
-	if i.canonical == "" {
-		i.peek()
-	}
-
 	return i.canonical
 }
 

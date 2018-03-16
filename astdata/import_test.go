@@ -23,7 +23,7 @@ func TestImport(t *testing.T) {
 	f, err = p.FindImport("net/http")
 	assert.NoError(t, err)
 
-	assert.Equal(t, "http", f.Canonical())
+	assert.Equal(t, "", f.Canonical())
 	assert.Equal(t, "http", f.TargetPackage())
 	assert.Regexp(t, "net/http$", f.Folder())
 	assert.Equal(t, "// comment http", f.Docs().String())
