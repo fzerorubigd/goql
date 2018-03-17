@@ -49,6 +49,13 @@ func (isPointerMethod) Value(in interface{}) structures.Bool {
 	return structures.Bool{Bool: fn.RecieverPointer()}
 }
 
+type bodyCol struct{}
+
+func (bodyCol) Value(in interface{}) structures.String {
+	fn := in.(*astdata.Function)
+	return structures.String{String: fn.Body()}
+}
+
 func registerFunc() {
 	structures.RegisterTable("funcs", &functionProvider{
 		cache: make(map[string][]interface{}),
@@ -63,6 +70,7 @@ func registerFunc() {
 	structures.RegisterField("funcs", "pointer_receiver", isPointerMethod{})
 	structures.RegisterField("funcs", "exported", genericIsExported{})
 	structures.RegisterField("funcs", "docs", genericDoc{})
+	structures.RegisterField("funcs", "body", bodyCol{})
 }
 
 func init() {

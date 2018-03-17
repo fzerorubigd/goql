@@ -53,5 +53,5 @@ func (beta) assert(err error) {
 }
 
 func (a *alpha) testing() {
-
+	panic("hi")
 }

@@ -27,6 +27,13 @@ type walker struct {
 	Package *Package
 }
 
+func extractSrc(src string, b *ast.BlockStmt) string {
+	l := int(b.Lbrace)
+	r := int(b.Rbrace)
+
+	return src[l : r-1]
+}
+
 func (fv *walker) Visit(node ast.Node) ast.Visitor {
 	if node != nil {
 		switch t := node.(type) {
@@ -34,7 +41,9 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 			fv.File.packageName = nameFromIdent(t.Name)
 			fv.File.docs = docsFromNodeDoc(t.Doc)
 		case *ast.FuncDecl:
-			fv.File.functions = append(fv.File.functions, newFunction(fv.Package, fv.File, t))
+			fn := newFunction(fv.Package, fv.File, t)
+			fn.body = extractSrc(fv.src, t.Body)
+			fv.File.functions = append(fv.File.functions, fn)
 			return nil // Do not go deeper
 		case *ast.GenDecl:
 			for i := range t.Specs {

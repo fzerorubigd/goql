@@ -16,6 +16,8 @@ type Function struct {
 
 	receiverClass   string
 	receiverPointer bool
+
+	body string
 }
 
 // Name return the name of the function
@@ -55,6 +57,11 @@ func (f *Function) ReceiverType() string {
 // RecieverPointer means this is a pointer method
 func (f *Function) RecieverPointer() bool {
 	return f.receiverPointer
+}
+
+// Body return the function body
+func (f *Function) Body() string {
+	return f.body
 }
 
 // newFunction return a single function annotation

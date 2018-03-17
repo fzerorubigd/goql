@@ -63,6 +63,7 @@ func TestGeneric(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, structures.String{String: "alpha"}, isMethodColumn{}.Value(m2))
 	assert.Equal(t, structures.Bool{Bool: true}, isPointerMethod{}.Value(m2))
+	assert.Equal(t, structures.String{String: "\n\tpanic(\"hi\")\n"}, bodyCol{}.Value(m2))
 
 	im1, err := p.FindImport("net/http")
 	assert.NoError(t, err)
