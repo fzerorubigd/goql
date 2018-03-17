@@ -279,10 +279,9 @@ func operNot(l getter) getter {
 				return nullValue
 			}
 			return notNullValue
-		case string, float64:
+		default:
 			panic("not is not applicable for string or number")
 		}
-		return !toBool(l(in))
 	}
 }
 
@@ -297,7 +296,7 @@ func castAsLeft(l, r interface{}) interface{} {
 	case null:
 		return toNull(r)
 	}
-	panic(fmt.Sprintf("%T is invalid type", l))
+	return r
 }
 
 func toBool(in interface{}) bool {
@@ -310,7 +309,7 @@ func toBool(in interface{}) bool {
 	case float64:
 		return t != 0
 	case null:
-		return false
+		return t != nullValue
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -328,7 +327,7 @@ func toNumber(in interface{}) float64 {
 	case float64:
 		return t
 	case null:
-		return 0
+		return float64(t)
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -341,8 +340,6 @@ func toString(in interface{}) string {
 		return t
 	case float64:
 		return fmt.Sprint(t)
-	case null:
-		return ""
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
