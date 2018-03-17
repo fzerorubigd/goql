@@ -39,10 +39,10 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, structures.String{String: "// Test\n// Line2"}, genericDoc{}.Value(aller{docs: astdata.Docs{"// Test", "// Line2"}}))
 	assert.Equal(t, structures.String{Null: true}, genericDoc{}.Value(aller{}))
 
-	p, err := astdata.ParsePackage("github.com/fzerorubigd/goql/astdata/fixture")
+	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
 	assert.NoError(t, err)
 	assert.Equal(t, structures.String{String: "fixture"}, genericPackageName{}.Value(aller{pkg: p}))
-	assert.Equal(t, structures.String{String: "github.com/fzerorubigd/goql/astdata/fixture"}, genericPackagePath{}.Value(aller{pkg: p}))
+	assert.Equal(t, structures.String{String: "github.com/fzerorubigd/fixture"}, genericPackagePath{}.Value(aller{pkg: p}))
 
 	f := p.Files()[0]
 	flName := f.FileName()
@@ -80,7 +80,7 @@ func TestGeneric(t *testing.T) {
 }
 
 func TestProviders(t *testing.T) {
-	p, err := astdata.ParsePackage("github.com/fzerorubigd/goql/astdata/fixture")
+	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
 	assert.NoError(t, err)
 
 	fn := &functionProvider{

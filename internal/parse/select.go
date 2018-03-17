@@ -19,7 +19,7 @@ var (
 	}
 )
 
-func isOperand(t ItemType) bool {
+func isOperator(t ItemType) bool {
 	return t == ItemAnd ||
 		t == ItemOr ||
 		t == ItemLike ||
@@ -30,6 +30,19 @@ func isOperand(t ItemType) bool {
 		t == ItemLesser ||
 		t == ItemLesserEqual ||
 		t == ItemIs
+}
+
+func isOperand(t ItemType) bool {
+	return t == ItemNumber ||
+		t == ItemAlpha ||
+		t == ItemLiteral1 ||
+		t == ItemLiteral2 ||
+		t == ItemNot ||
+		t == ItemNull
+}
+
+func isKeyword(t ItemType) bool {
+	return t == ItemOrder || t == ItemLimit || t == ItemEOF
 }
 
 func (ss *SelectStmt) parseField(p *parser) (Field, error) {
@@ -131,6 +144,85 @@ func (ss *SelectStmt) parse(p *parser) error {
 	return nil
 }
 
+func (p *parser) operator(ahead item, op, final Stack, expected int) (int, error) {
+	// operator
+	if expected|whereOp != expected {
+		return 0, fmt.Errorf("not expected operator but got %s", ahead)
+	}
+	// so we got the op, push it into stack
+	for {
+		top, err := op.Peek()
+		if err == nil && top.Type() != ItemParenOpen && precedence[top.Type()] > precedence[ahead.Type()] {
+			_, _ = op.Pop()
+			final.Push(top)
+		} else {
+			break
+		}
+	}
+	op.Push(ahead)
+	return whereAlpha, nil
+}
+
+func (p *parser) operand(ahead item, op, final Stack, expected int) (int, error) {
+	// operand
+	if expected|whereAlpha != expected && expected|whereStart != expected {
+		return 0, fmt.Errorf("not expected operand but got %s", ahead)
+	}
+	not := expected|whereNotOp == expected
+	if ahead.typ == ItemNot {
+		if not {
+			return 0, fmt.Errorf("not after not")
+		}
+		op.Push(ahead)
+		expected = whereAlpha | whereNotOp
+	} else {
+		final.Push(ahead)
+		expected = whereOp
+	}
+
+	if not {
+		top, err := op.Pop()
+		assertTrue(err == nil && top.Type() == ItemNot, "why")
+		final.Push(top)
+	}
+	return expected, nil
+}
+
+func (p *parser) parenClose(ahead item, op, final Stack, expected int) (int, error) {
+	if expected|whereOp != expected {
+		return 0, fmt.Errorf("wrong ')' ")
+	}
+
+	for {
+		o, err := op.Pop()
+		assertTrue(err == nil, "why no op in stack?")
+		if o.Type() == ItemParenOpen {
+			break
+		}
+		final.Push(o)
+	}
+	return expected, nil
+
+}
+
+func (p *parser) parenOpen(ahead item, op, final Stack, expected int) (int, error) {
+	if expected|whereStart != expected && expected|whereAlpha != expected {
+		return 0, fmt.Errorf("wrong '(' ")
+	}
+	op.Push(ahead)
+	return expected, nil
+}
+
+func (p *parser) copyStack(op, final Stack) {
+	for {
+		o, err := op.Pop()
+		if err != nil {
+			break
+		}
+		final.Push(o)
+	}
+}
+
 func (p *parser) where() (Stack, error) {
 	w := p.scanIgnoreWhiteSpace()
 	assertType(w, ItemWhere)
@@ -142,82 +234,42 @@ func (p *parser) where() (Stack, error) {
 bigLoop:
 	for {
 		switch ahead := p.scanIgnoreWhiteSpace(); {
-		case ahead.typ == ItemOrder || ahead.typ == ItemLimit || ahead.typ == ItemEOF:
+		case isKeyword(ahead.typ):
 			if expected|whereOp != expected {
 				return nil, fmt.Errorf("expected an operand but end of where %d", expected)
 			}
 			p.reject()
 			break bigLoop
+		case isOperator(ahead.typ):
+			var err error
+			expected, err = p.operator(ahead, op, final, expected)
+			if err != nil {
+				return nil, err
+			}
 		case isOperand(ahead.typ):
-			// operator
-			if expected|whereOp != expected {
-				return nil, fmt.Errorf("not expected operator but got %s", ahead)
-			}
-			// so we got the op, push it into stack
-			for {
-				top, err := op.Peek()
-				if err == nil && top.Type() != ItemParenOpen && precedence[top.Type()] > precedence[ahead.Type()] {
-					_, _ = op.Pop()
-					final.Push(top)
-				} else {
-					break
-				}
-			}
-			op.Push(ahead)
-			expected = whereAlpha
-		case ahead.typ == ItemNumber || ahead.typ == ItemAlpha || ahead.typ == ItemLiteral1 || ahead.typ == ItemLiteral2 || ahead.typ == ItemNot || ahead.typ == ItemNull:
-			// operand
-			if expected|whereAlpha != expected && expected|whereStart != expected {
-				return nil, fmt.Errorf("not expected operand but got %s", ahead)
-			}
-			not := expected|whereNotOp == expected
-			if ahead.typ == ItemNot {
-				if not {
-					return nil, fmt.Errorf("not after not")
-				}
-				op.Push(ahead)
-				expected = whereAlpha | whereNotOp
-			} else {
-				final.Push(ahead)
-				expected = whereOp
-			}
-
-			if not {
-				top, err := op.Pop()
-				assertTrue(err == nil && top.Type() == ItemNot, "why")
-				final.Push(top)
+			var err error
+			expected, err = p.operand(ahead, op, final, expected)
+			if err != nil {
+				return nil, err
 			}
 
 		case ahead.typ == ItemParenOpen:
-			if expected|whereStart != expected && expected|whereAlpha != expected {
-				return nil, fmt.Errorf("wrong '(' ")
+			var err error
+			expected, err = p.parenOpen(ahead, op, final, expected)
+			if err != nil {
+				return nil, err
 			}
-			op.Push(ahead)
 		case ahead.typ == ItemParenClose:
-			if expected|whereOp != expected {
-				return nil, fmt.Errorf("wrong ')' ")
-			}
-
-			for {
-				o, err := op.Pop()
-				assertTrue(err == nil, "why no op in stack?")
-				if o.Type() == ItemParenOpen {
-					break
-				}
-				final.Push(o)
+			var err error
+			expected, err = p.parenClose(ahead, op, final, expected)
+			if err != nil {
+				return nil, err
 			}
 		default:
 			return nil, fmt.Errorf("not expected %s", ahead)
 		}
 	}
-
-	for {
-		o, err := op.Pop()
-		if err != nil {
-			break
-		}
-		final.Push(o)
-	}
+	p.copyStack(op, final)
 	return final, nil
 }
 

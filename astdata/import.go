@@ -15,9 +15,9 @@ type Import struct {
 	canonical string
 	path      string
 	docs      Docs
-	i         *ast.ImportSpec
-	d         *ast.CommentGroup
-	folder    string
+	//i         *ast.ImportSpec
+	//d         *ast.CommentGroup
+	folder string
 
 	pkg *Package
 	fl  *File

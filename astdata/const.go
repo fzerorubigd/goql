@@ -11,8 +11,8 @@ type Constant struct {
 	pkg *Package
 	fl  *File
 
-	v *ast.ValueSpec
-	c *ast.CommentGroup
+	//v *ast.ValueSpec
+	//c *ast.CommentGroup
 
 	name string
 	docs Docs

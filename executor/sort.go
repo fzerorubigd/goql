@@ -16,23 +16,7 @@ func (s *sortMe) Len() int {
 	return len(s.data)
 }
 
-func interfaceLess(i, j interface{}, desc bool) int {
-	lesser := 1
-	greater := -1
-	equal := 0
-	if desc {
-		lesser = -1
-		greater = 1
-	}
-	if i == nil && j != nil {
-		return lesser
-	}
-	if i != nil && j == nil {
-		return greater
-	}
-	if i == nil && j == nil {
-		return equal
-	}
+func compareTypes(i, j interface{}, lesser, greater, equal int) int {
 	// i, j are not nil
 	switch i.(type) {
 	case bool:
@@ -63,6 +47,28 @@ func interfaceLess(i, j interface{}, desc bool) int {
 	}
 
 	return equal
+
+}
+
+func interfaceLess(i, j interface{}, desc bool) int {
+	lesser := 1
+	greater := -1
+	equal := 0
+	if desc {
+		lesser = -1
+		greater = 1
+	}
+	if i == nil && j != nil {
+		return lesser
+	}
+	if i != nil && j == nil {
+		return greater
+	}
+	if i == nil && j == nil {
+		return equal
+	}
+
+	return compareTypes(i, j, lesser, greater, equal)
 }
 
 func (s *sortMe) Less(i int, j int) bool {

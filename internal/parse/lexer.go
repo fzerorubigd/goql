@@ -150,7 +150,6 @@ type lexer struct {
 	start int    // start position for the current lexeme
 	pos   int    // current position
 	width int    // last rune width
-	state stateFn
 	items chan item
 
 	parenDepth int
@@ -247,13 +246,17 @@ func (l *lexer) run() {
 	close(l.items)
 }
 
+func (l *lexer) parenCheck() stateFn {
+	if l.parenDepth > 0 {
+		l.errorf("paren not closed")
+	}
+	return nil
+}
+
 func lexStart(l *lexer) stateFn {
 	switch r := l.peek(); {
 	case r == eof:
-		if l.parenDepth > 0 {
-			l.errorf("paren not closed")
-		}
-		return nil
+		return l.parenCheck()
 	case isSQLOperator(r):
 		return lexOp
 	case isAlpha(r):

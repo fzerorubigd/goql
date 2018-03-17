@@ -403,13 +403,13 @@ func buildFilter(w parse.Stack) (getter, error) {
 	}
 	for {
 		if isOperator(t.Type()) {
-			r, err := p.Pop()
-			if err != nil {
+			r, e := p.Pop()
+			if e != nil {
 				return nil, fmt.Errorf("invalid operand")
 			}
 			rg := getGetter(r)
-			l, err := p.Pop()
-			if err != nil {
+			l, e := p.Pop()
+			if e != nil {
 				return nil, fmt.Errorf("invalid operand")
 			}
 			lg := getGetter(l)
@@ -417,8 +417,8 @@ func buildFilter(w parse.Stack) (getter, error) {
 			w.Push(g)
 		} else if t.Type() == parse.ItemNot {
 			// pop the operand
-			ts, err := p.Pop()
-			if err != nil {
+			ts, e := p.Pop()
+			if e != nil {
 				return nil, fmt.Errorf("end of stack")
 			}
 			// push back the last getter (but after not )

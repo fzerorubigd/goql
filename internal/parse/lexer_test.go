@@ -65,10 +65,10 @@ func TestGeneralLexer(t *testing.T) {
 	for i := range lexerTest {
 		l := lex(lexerTest[i].Str)
 		for _, exp := range lexerTest[i].Items {
-			item := l.nextItem()
-			assert.Equal(t, exp.value, item.Value())
-			assert.Equal(t, exp.pos, item.Pos())
-			assert.Equal(t, exp.typ, item.Type())
+			it := l.nextItem()
+			assert.Equal(t, exp.value, it.Value())
+			assert.Equal(t, exp.pos, it.Pos())
+			assert.Equal(t, exp.typ, it.Type())
 		}
 	}
 }
