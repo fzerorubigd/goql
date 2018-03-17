@@ -39,4 +39,3 @@ its in alpha stage, there is a long todo list :
 - Write documentation
 - Definition type and operator 
 - UPDATE/INSERT/DELETE support (Yes, code generation with sql)
-- Golang Sql driver
