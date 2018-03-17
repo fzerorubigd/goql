@@ -47,7 +47,7 @@ func interfaceLess(i, j interface{}, desc bool) int {
 		if i.(float64) == j.(float64) {
 			return equal
 		}
-		if i.(float64) > j.(float64) {
+		if i.(float64) < j.(float64) {
 			return lesser
 		}
 		return greater

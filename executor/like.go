@@ -20,7 +20,7 @@ func (ls likeStr) regexp() *regexp.Regexp {
 		return r
 	}
 
-	re := ""
+	re := "^"
 	for i := 0; i < len(ls); i++ {
 		if ls[i] == '%' {
 			re += ".*"
@@ -30,6 +30,7 @@ func (ls likeStr) regexp() *regexp.Regexp {
 			re += string(ls[i])
 		}
 	}
+	re += "$"
 	r := regexp.MustCompile(re)
 	regCache[ls] = r
 	return r
