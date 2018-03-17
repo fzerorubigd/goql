@@ -28,6 +28,9 @@ type walker struct {
 }
 
 func extractSrc(src string, b *ast.BlockStmt) string {
+	if b == nil {
+		return ""
+	}
 	l := int(b.Lbrace)
 	r := int(b.Rbrace)
 
