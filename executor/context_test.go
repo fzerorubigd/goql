@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fzerorubigd/goql/internal/parse"
 	"github.com/fzerorubigd/goql/structures"
 	"github.com/stretchr/testify/assert"
 )
@@ -49,6 +50,14 @@ func (provider) Provide(in interface{}) []interface{} {
 	return res
 }
 
+func ast(q string) *parse.Query {
+	ast, err := parse.AST(q)
+	if err != nil {
+		panic(err)
+	}
+	return ast
+}
+
 func TestContext(t *testing.T) {
 	structures.RegisterTable("test", provider{})
 
@@ -57,55 +66,55 @@ func TestContext(t *testing.T) {
 	structures.RegisterField("test", "c3", c3{})
 
 	q := "SELECT * FROM test"
-	row, data, err := Execute(tablet(1), q)
+	row, data, err := Execute(tablet(1), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(row))
 	assert.Equal(t, []string{"c1", "c2", "c3"}, row)
 	assert.Equal(t, 1, len(data))
 
-	row, data, err = Execute(tablet(10), q)
+	row, data, err = Execute(tablet(10), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(row))
 	assert.Equal(t, []string{"c1", "c2", "c3"}, row)
 	assert.Equal(t, 10, len(data))
 
 	q = "SELECT c1, c2 FROM test WHERE c3"
-	row, data, err = Execute(tablet(10), q)
+	row, data, err = Execute(tablet(10), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(row))
 	assert.Equal(t, []string{"c1", "c2"}, row)
 	assert.Equal(t, 5, len(data))
 
 	q = "SELECT c1, c2, c2 FROM test LIMIT 10"
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(row))
 	assert.Equal(t, []string{"c1", "c2", "c2"}, row)
 	assert.Equal(t, 10, len(data))
 
 	q = `SELECT c1, c2 FROM test WHERE "c2" like '%t_h%' OR "c3" > 0  LIMIT 10`
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(row))
 	assert.Equal(t, []string{"c1", "c2"}, row)
 	assert.Equal(t, 10, len(data))
 
 	q = "SELECT c1 FROM test WHERE c3 ORDER by c2 desc"
-	row, data, err = Execute(tablet(10), q)
+	row, data, err = Execute(tablet(10), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(row))
 	assert.Equal(t, []string{"c1"}, row)
 	assert.Equal(t, 5, len(data))
 
 	q = "SELECT * FROM test limit 5,50"
-	row, data, err = Execute(tablet(10), q)
+	row, data, err = Execute(tablet(10), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(row))
 	assert.Equal(t, []string{"c1", "c2", "c3"}, row)
 	assert.Equal(t, 5, len(data))
 
 	q = "SELECT * FROM test limit 15,50"
-	row, data, err = Execute(tablet(10), q)
+	row, data, err = Execute(tablet(10), ast(q))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(row))
 	assert.Equal(t, []string{"c1", "c2", "c3"}, row)
@@ -115,50 +124,43 @@ func TestContext(t *testing.T) {
 
 func TestContextErr(t *testing.T) {
 	// Err
-	q := "SELECT c1, c2 FROM test  10"
-	row, data, err := Execute(tablet(100), q)
-	assert.Error(t, err)
-	assert.Nil(t, row)
-	assert.Nil(t, data)
-
-	// Err
-	q = "SELECT c1, c2 FROM notexists"
-	row, data, err = Execute(tablet(100), q)
+	q := "SELECT c1, c2 FROM notexists"
+	row, data, err := Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
 	// Err
 	q = "SELECT c1, no FROM test"
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
 	// Err
 	q = `SELECT c1 FROM test WHERE "no"`
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
 	// Err
 	q = "SELECT c1, noooo.no FROM test"
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
 	// Err
 	q = "SELECT c1, c2 FROM test WHERE noo is null"
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
 	// Err
 	q = "SELECT c1, c2 FROM test ORDER BY no"
-	row, data, err = Execute(tablet(100), q)
+	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)
 	assert.Nil(t, data)

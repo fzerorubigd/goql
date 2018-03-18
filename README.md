@@ -4,7 +4,7 @@ A query language, over Go code, in Go!
 [![Build Status](https://travis-ci.org/fzerorubigd/goql.svg)](https://travis-ci.org/fzerorubigd/goql)
 [![Coverage Status](https://coveralls.io/repos/github/fzerorubigd/goql/badge.svg?branch=master)](https://coveralls.io/github/fzerorubigd/goql?branch=master)
 [![GoDoc](https://godoc.org/github.com/fzerorubigd/goql?status.svg)](https://godoc.org/github.com/fzerorubigd/goql)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fzerorubigd/goql)](https://goreportcard.com/report/github.com/fzerorubigd/goql)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fzerorubigd/goql/die-github-cache-die)](https://goreportcard.com/report/github.com/fzerorubigd/goql)
 
 *This package is under heavy development, anything may change!*
 

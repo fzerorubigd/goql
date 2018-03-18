@@ -2,26 +2,27 @@ package goql
 
 import (
 	"database/sql"
-	"database/sql/driver"
+	drv "database/sql/driver"
 	"fmt"
 	"io"
 
 	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/executor"
 	// runtime is the go type runtimes
+	"github.com/fzerorubigd/goql/internal/parse"
 	_ "github.com/fzerorubigd/goql/internal/runtime"
 	"github.com/fzerorubigd/goql/structures"
 )
 
-type goqlDriver struct{}
+type driver struct{}
 
-type goqlConn struct {
+type conn struct {
 	pkg *astdata.Package
 }
 
-type goqlStmt struct {
+type stmt struct {
 	pkg      *astdata.Package
-	query    string
+	query    *parse.Query
 	executed bool
 }
 
@@ -31,44 +32,44 @@ type row struct {
 	data   [][]structures.Valuer
 }
 
-func (goqlDriver) Open(name string) (driver.Conn, error) {
+func (driver) Open(name string) (drv.Conn, error) {
 	p, err := astdata.ParsePackage(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return &goqlConn{pkg: p}, nil
+	return &conn{pkg: p}, nil
 }
 
-func (gc *goqlConn) Prepare(query string) (driver.Stmt, error) {
-	// TODO : move parser out of internal and change execute to accept ast tree
-	return &goqlStmt{pkg: gc.pkg, query: query}, nil
+func (gc *conn) Prepare(query string) (drv.Stmt, error) {
+	st, err := parse.AST(query)
+	if err != nil {
+		return nil, err
+	}
+	return &stmt{pkg: gc.pkg, query: st}, nil
 }
 
-func (gc *goqlConn) Close() error {
+func (gc *conn) Close() error {
 	return nil
 }
 
-func (gc *goqlConn) Begin() (driver.Tx, error) {
+func (gc *conn) Begin() (drv.Tx, error) {
 	return nil, fmt.Errorf("not supported")
 }
 
-func (gs *goqlStmt) Close() error {
+func (gs *stmt) Close() error {
 	return nil
 }
 
-func (gs *goqlStmt) NumInput() int {
+func (gs *stmt) NumInput() int {
 	return 0
 }
 
-func (gs *goqlStmt) Exec(args []driver.Value) (driver.Result, error) {
+func (gs *stmt) Exec(args []drv.Value) (drv.Result, error) {
 	return nil, fmt.Errorf("currently only select via query is supported")
 }
 
-func (gs *goqlStmt) Query(args []driver.Value) (driver.Rows, error) {
-	if len(args) > 0 {
-		return nil, fmt.Errorf("args not supported yet, but %d args is provided", len(args))
-	}
+func (gs *stmt) Query(args []drv.Value) (drv.Rows, error) {
 	var err error
 	r := &row{}
 	r.rows, r.data, err = executor.Execute(gs.pkg, gs.query)
@@ -89,7 +90,7 @@ func (r *row) Close() error {
 	return nil
 }
 
-func (r *row) Next(dest []driver.Value) error {
+func (r *row) Next(dest []drv.Value) error {
 	if r.cursor >= len(r.data) {
 		return io.EOF
 	}
@@ -102,5 +103,5 @@ func (r *row) Next(dest []driver.Value) error {
 }
 
 func init() {
-	sql.Register("goql", &goqlDriver{})
+	sql.Register("goql", &driver{})
 }

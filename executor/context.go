@@ -11,7 +11,6 @@ import (
 
 type context struct {
 	pkg    interface{}
-	src    string
 	q      *parse.Query
 	fields []string
 	show   []int
@@ -44,13 +43,9 @@ func (c col) String() string {
 }
 
 // Execute the query
-func Execute(c interface{}, src string) ([]string, [][]structures.Valuer, error) {
+func Execute(c interface{}, src *parse.Query) ([]string, [][]structures.Valuer, error) {
 	var err error
-	ctx := &context{pkg: c, src: src}
-	ctx.q, err = parse.AST(ctx.src)
-	if err != nil {
-		return nil, nil, err
-	}
+	ctx := &context{pkg: c, q: src}
 
 	m, err := selectColumn(ctx)
 	if err != nil {
