@@ -34,6 +34,10 @@ also some operators are available:
 goql --package="fmt" "select name from funcs where receiver is not null and name like '%print' order by name desc limit 10,1"
 ```
 
+## Demo 
+
+[![asciicast](https://asciinema.org/a/170483.png)](https://asciinema.org/a/170483)
+
 its in alpha stage, there is a long todo list :
 
 - Write documentation
