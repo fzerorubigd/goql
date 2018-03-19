@@ -19,6 +19,48 @@ func TestSelectSimple(t *testing.T) {
 	assert.Equal(t, Field{Column: "b"}, ss.Fields[1])
 	assert.Equal(t, Field{Column: "c", Table: "test"}, ss.Fields[2])
 
+	q = "SELECT func(a,'b',10), c, 10, 'string' FROM test"
+	stmt, err = AST(q)
+	assert.NoError(t, err)
+	assert.IsType(t, &SelectStmt{}, stmt.Statement)
+	ss = stmt.Statement.(*SelectStmt)
+	assert.Equal(t, "test", ss.Table)
+
+	assert.Equal(t, 4, len(ss.Fields))
+	assert.NotNil(t, ss.Fields[0].Function)
+	fn := ss.Fields[0].Function
+	assert.Equal(t, "func", fn.Name)
+	assert.Equal(t, 3, len(fn.Parameters))
+	assert.Equal(t, Field{Column: "a"}, fn.Parameters[0])
+	assert.Equal(t, Field{String: "b"}, fn.Parameters[1])
+	assert.Equal(t, Field{Number: "10"}, fn.Parameters[2])
+
+	assert.Equal(t, Field{Column: "c"}, ss.Fields[1])
+	assert.Equal(t, Field{Number: "10"}, ss.Fields[2])
+	assert.Equal(t, Field{String: "string"}, ss.Fields[3])
+
+	q = "SELECT FN1(FN2(FN3(), x)) FROM test"
+	stmt, err = AST(q)
+	assert.NoError(t, err)
+	assert.IsType(t, &SelectStmt{}, stmt.Statement)
+	ss = stmt.Statement.(*SelectStmt)
+	assert.Equal(t, "test", ss.Table)
+
+	assert.Equal(t, 1, len(ss.Fields))
+	assert.NotNil(t, ss.Fields[0].Function)
+	fn1 := ss.Fields[0].Function
+	assert.Equal(t, "FN1", fn1.Name)
+	assert.Equal(t, 1, len(fn1.Parameters))
+	assert.NotNil(t, fn1.Parameters[0].Function)
+	fn2 := fn1.Parameters[0].Function
+	assert.Equal(t, "FN2", fn2.Name)
+	assert.Equal(t, 2, len(fn2.Parameters))
+	assert.Equal(t, Field{Column: "x"}, fn2.Parameters[1])
+	assert.NotNil(t, fn2.Parameters[0].Function)
+	fn3 := fn2.Parameters[0].Function
+	assert.Equal(t, "FN3", fn3.Name)
+	assert.Equal(t, 0, len(fn3.Parameters))
+
 	q = "SELECT a,, FROM test"
 	stmt, err = AST(q)
 	assert.Error(t, err)
@@ -33,6 +75,22 @@ func TestSelectSimple(t *testing.T) {
 	stmt, err = AST(q)
 	assert.Error(t, err)
 	assert.Nil(t, stmt)
+
+	q = "SELECT func(invalid,) FROM test "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT func(invalid,  test  |)  "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT test. From test "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
 }
 
 func pop(t *testing.T, stack Stack) Item {

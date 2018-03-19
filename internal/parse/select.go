@@ -51,31 +51,77 @@ func (ss *SelectStmt) parseField(p *parser) (Field, error) {
 		return Field{WildCard: true}, nil
 	}
 
-	if token.typ == ItemAlpha || token.typ == ItemLiteral2 {
-		ahead := p.scan() // white space is not allowed here
-		if ahead.typ != ItemDot {
-			p.reject()
-			return Field{Column: GetTokenString(token)}, nil
-		}
-		ahead = p.scan()
-		if ahead.typ == ItemAlpha || ahead.typ == ItemLiteral2 {
+	if token.typ == ItemAlpha {
+		ahead := p.scanIgnoreWhiteSpace()
+		if ahead.typ == ItemParenOpen {
+			// function
+			fileds, err := ss.parseFields(p, true)
+			if err != nil {
+				return Field{}, err
+			}
+			ahead = p.scanIgnoreWhiteSpace()
+			if ahead.typ != ItemParenClose {
+				return Field{}, fmt.Errorf("expected ) but got %s", ahead)
+			}
 			return Field{
-				Table:  GetTokenString(token),
-				Column: GetTokenString(ahead),
+				Function: &Function{
+					Name:       GetTokenString(token),
+					Parameters: fileds,
+				},
 			}, nil
 		}
+		p.reject()
+	}
+
+	if token.typ == ItemAlpha || token.typ == ItemLiteral2 {
+		ahead := p.scan() // white space is not allowed here
+		if ahead.typ == ItemDot {
+			ahead = p.scan()
+			if ahead.typ == ItemAlpha || ahead.typ == ItemLiteral2 {
+				return Field{
+					Table:  GetTokenString(token),
+					Column: GetTokenString(ahead),
+				}, nil
+			}
+			return Field{}, fmt.Errorf("expected field name got %s", ahead)
+		}
+		p.reject() // nope its not a dot
+		return Field{
+			Column: GetTokenString(token),
+		}, nil
+	}
+
+	if token.typ == ItemNumber {
+		return Field{
+			Number: token.Value(),
+		}, nil
+	}
+
+	if token.typ == ItemLiteral1 {
+		return Field{
+			String: GetTokenString(token),
+		}, nil
 	}
 
 	return Field{}, fmt.Errorf("unexpected token, %s", token)
 }
 
-func (ss *SelectStmt) parseFields(p *parser) error {
+func (ss *SelectStmt) parseFields(p *parser, fn bool) (Fields, error) {
+	var res Fields
+	if fn {
+		ahead := p.scanIgnoreWhiteSpace()
+		if ahead.typ == ItemParenClose {
+			p.reject()
+			return Fields{}, nil
+		}
+		p.reject()
+	}
 	for {
 		field, err := ss.parseField(p)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		ss.Fields = append(ss.Fields, field)
+		res = append(res, field)
 
 		comma := p.scanIgnoreWhiteSpace()
 		if comma.typ != ItemComma {
@@ -83,11 +129,13 @@ func (ss *SelectStmt) parseFields(p *parser) error {
 			break
 		}
 	}
-	return nil
+	return res, nil
 }
 
 func (ss *SelectStmt) parse(p *parser) error {
-	if err := ss.parseFields(p); err != nil {
+	var err error
+	ss.Fields, err = ss.parseFields(p, false)
+	if err != nil {
 		return err
 	}
 

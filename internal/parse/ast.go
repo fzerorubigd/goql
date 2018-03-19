@@ -15,12 +15,21 @@ type Statement interface {
 	parse(*parser) error
 }
 
+// Function is an sql function
+type Function struct {
+	Name       string
+	Parameters Fields
+}
+
 // Field is the fields inside select
 type Field struct {
-	WildCard bool // aka '*'
-	//Alias    string // add support for this? :))
-	Table  string // the part before dot
-	Column string // the column
+	WildCard bool      // aka '*'
+	String   string    // is this an string ('string')  empty means no
+	Number   string    // is this an number? (19991) empty means no
+	Function *Function // is this a function? nil means no
+	Table    string    // the part before dot
+	Column   string    // the column
+	Alias    string    // alias of the column
 }
 
 // Fields is the collection of fields with order
