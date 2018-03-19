@@ -105,6 +105,19 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
+	res = make(chan []Valuer, 3)
+	err = GetFields(tablet(1), "test", res, "c2", "", "c3")
+	assert.NoError(t, err)
+
+	cnt = 0
+	for i := range res {
+		assert.Equal(t, 3, len(i))
+		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[0].(String).String)
+		assert.Equal(t, cnt%2 == 0, i[2].(Bool).Bool)
+		assert.Equal(t, nil, i[1])
+		cnt++
+	}
+
 	assert.Panics(t, func() { RegisterTable("test", nilProvider{}) })
 	assert.Panics(t, func() { RegisterField("not-exist", "test", c1{}) })
 	assert.Panics(t, func() { RegisterField("test", "c1", c1{}) })
