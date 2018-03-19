@@ -28,8 +28,10 @@ func (f *fn) Execute(v ...Valuer) (Valuer, error) {
 
 func TestRegister(t *testing.T) {
 	concat := &fn{}
-	assert.NotPanics(t, func() { RegisterFunc("concat", concat) })
-	assert.Panics(t, func() { RegisterFunc("concat", concat) })
+	assert.NotPanics(t, func() { RegisterFunction("concat", concat) })
+	assert.Panics(t, func() { RegisterFunction("concat", concat) })
+	assert.True(t, HasFunction("concat"))
+	assert.False(t, HasFunction("invalid-func"))
 
 	res, err := ExecuteFunction("concat", String{}, Bool{})
 	assert.Error(t, err)

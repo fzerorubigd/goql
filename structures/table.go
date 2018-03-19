@@ -217,6 +217,11 @@ func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) e
 
 	// do concurrently
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				// closed channel? ignore it
+			}
+		}()
 		defer close(res)
 		cache := tbl.data.Provide(p)
 		for i := range cache {

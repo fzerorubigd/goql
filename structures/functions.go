@@ -1,6 +1,9 @@
 package structures
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 // Function is the functions in the system
 type Function interface {
@@ -9,12 +12,13 @@ type Function interface {
 
 var (
 	functions = make(map[string]Function)
+	fnLock    = &sync.RWMutex{}
 )
 
-// RegisterFunc is entry point for registering a function into system
-func RegisterFunc(name string, fn Function) {
-	lock.Lock()
-	defer lock.Unlock()
+// RegisterFunction is entry point for registering a function into system
+func RegisterFunction(name string, fn Function) {
+	fnLock.Lock()
+	defer fnLock.Unlock()
 
 	if _, ok := functions[name]; ok {
 		panic(fmt.Sprintf("function with name '%s' is already registered", name))
@@ -23,10 +27,20 @@ func RegisterFunc(name string, fn Function) {
 	functions[name] = fn
 }
 
+// HasFunction return if the function is available
+func HasFunction(name string) bool {
+	fnLock.RLock()
+	defer fnLock.RUnlock()
+
+	_, ok := functions[name]
+	return ok
+}
+
 // ExecuteFunction is a helper to execute function by its name
 func ExecuteFunction(name string, value ...Valuer) (Valuer, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	fnLock.RLock()
+	defer fnLock.RUnlock()
+
 	fn, ok := functions[name]
 	if !ok {
 		return nil, fmt.Errorf("function with name '%s' is not registered", name)
