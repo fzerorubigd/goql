@@ -15,25 +15,31 @@ type Statement interface {
 	parse(*parser) error
 }
 
-// Function is an sql function
-type Function struct {
-	Name       string
-	Parameters Fields
-}
-
-// Field is the fields inside select
+// Field is the fields inside select and functions, for functions the parameters is valid
 type Field struct {
-	WildCard bool      // aka '*'
-	String   string    // is this an string ('string')  empty means no
-	Number   string    // is this an number? (19991) empty means no
-	Function *Function // is this a function? nil means no
-	Table    string    // the part before dot
-	Column   string    // the column
-	Alias    string    // alias of the column
+	Table      string
+	Alias      string
+	Item       Item
+	Parameters Fields
 }
 
 // Fields is the collection of fields with order
 type Fields []Field
+
+type itemFn struct {
+	item
+	parameter Fields
+}
+
+func (i itemFn) Parameters() Fields {
+	return i.parameter
+}
+
+// FuncItem is an item with its parameter for where
+type FuncItem interface {
+	Item
+	Parameters() Fields
+}
 
 // Order is one order in the order array
 type Order struct {

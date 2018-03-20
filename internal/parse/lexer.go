@@ -56,6 +56,10 @@ const (
 	ItemAlpha
 	// ItemNumber is a number
 	ItemNumber
+	// ItemFalse is the bool expression (false)
+	ItemFalse
+	// ItemTrue is the true
+	ItemTrue
 	// ItemEqual is =
 	ItemEqual
 	// ItemGreater is >
@@ -84,6 +88,8 @@ const (
 	ItemSemicolon
 	// ItemDot is .
 	ItemDot
+	// ItemFunc is the function
+	ItemFunc
 )
 
 var (
@@ -102,6 +108,8 @@ var (
 		"like":   ItemLike,
 		"is":     ItemIs,
 		"null":   ItemNull,
+		"false":  ItemFalse,
+		"true":   ItemTrue,
 	}
 )
 

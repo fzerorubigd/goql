@@ -111,11 +111,11 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, []string{"c1", "c2", "c2"}, row)
 	assert.Equal(t, 10, len(data))
 
-	q = `SELECT c1, c2 FROM test WHERE "c2" like '%t_h%' OR "c3" > 0  LIMIT 10`
+	q = `SELECT c1, c2, false FROM test WHERE "c2" like '%t_h%' OR "c3" > 0 or true and concat('t', 's') = 'ts' and c3 is not null LIMIT 10`
 	row, data, err = Execute(tablet(100), ast(q))
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(row))
-	assert.Equal(t, []string{"c1", "c2"}, row)
+	assert.Equal(t, 3, len(row))
+	assert.Equal(t, []string{"c1", "c2", "static"}, row)
 	assert.Equal(t, 10, len(data))
 
 	q = "SELECT c1 FROM test WHERE c3 ORDER by c2 desc"
@@ -213,6 +213,12 @@ func TestContextErr(t *testing.T) {
 	assert.Nil(t, data)
 
 	q = "SELECT c1, wrong(c2) FROM test"
+	row, data, err = Execute(tablet(100), ast(q))
+	assert.Error(t, err)
+	assert.Nil(t, row)
+	assert.Nil(t, data)
+
+	q = "SELECT c1, c2 FROM test WHERE wrong()"
 	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/fzerorubigd/goql/internal/parse"
 	"github.com/fzerorubigd/goql/structures"
@@ -17,18 +16,20 @@ const (
 	fieldTypeCopy
 	fieldTypeStaticNumber
 	fieldTypeStaticString
+	fieldTypeStaticBool
 	fieldTypeFunction
 )
 
 type field struct {
-	order     int
-	name      string // TODO : support for alias
-	show      bool
-	typ       fieldType
-	staticStr string // for static column only
-	staticNum float64
-	copy      int   // for duplicated field, copy from another field
-	argsOrder []int // for function column only, the order of arguments in the fields list
+	order      int
+	name       string // TODO : support for alias
+	show       bool
+	typ        fieldType
+	staticStr  string // for static column only
+	staticNum  float64
+	staticBool bool
+	copy       int   // for duplicated field, copy from another field
+	argsOrder  []int // for function column only, the order of arguments in the fields list
 }
 
 type context struct {
@@ -45,29 +46,39 @@ type context struct {
 	order int
 }
 
-const itemColumn parse.ItemType = -999
+const (
+	itemColumn parse.ItemType = -999
+)
 
 // A hack to handle column, I don't like this kind of hacks but I'm too bored :)
-type col struct {
-	field string
-	index int
+type dummy struct {
+	typ   parse.ItemType
+	pos   int
+	value string
 }
 
-func (col) Type() parse.ItemType {
-	return itemColumn
+func (d dummy) Type() parse.ItemType {
+	return d.typ
 }
 
-// Pos is the position of the column in the requested index
-func (c col) Pos() int {
-	return c.index
+func (d dummy) Pos() int {
+	return d.pos
 }
 
-func (c col) Value() string {
-	return c.field
+func (d dummy) Value() string {
+	return d.value
 }
 
-func (c col) String() string {
-	return ""
+func (d dummy) String() string {
+	return "dummy"
+}
+
+func newItem(t parse.ItemType, v string, p int) parse.Item {
+	return dummy{
+		typ:   t,
+		pos:   p,
+		value: v,
+	}
 }
 
 // Execute the query
@@ -75,7 +86,7 @@ func Execute(c interface{}, src *parse.Query) ([]string, [][]structures.Valuer, 
 	var err error
 	ctx := &context{pkg: c, q: src}
 
-	err = selectColumn2(ctx)
+	err = selectColumn(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,22 +95,24 @@ func Execute(c interface{}, src *parse.Query) ([]string, [][]structures.Valuer, 
 }
 
 func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
+	assertType(fl.Item, parse.ItemNumber, parse.ItemTrue, parse.ItemFalse, parse.ItemLiteral1)
 	defer func() {
 		ctx.order++
 	}()
 	name := "static"
-	if fl.String != "" {
-		return field{
+	var t field
+	if fl.Item.Type() == parse.ItemLiteral1 {
+		t = field{
 			order:     ctx.order,
 			name:      name,
 			show:      show,
 			typ:       fieldTypeStaticString,
-			staticStr: fl.String,
+			staticStr: parse.GetTokenString(fl.Item),
 		}
 	}
-	if fl.Number != "" {
-		f, _ := strconv.ParseFloat(fl.Number, 64)
-		return field{
+	if fl.Item.Type() == parse.ItemNumber {
+		f, _ := strconv.ParseFloat(fl.Item.Value(), 64)
+		t = field{
 			order:     ctx.order,
 			name:      name,
 			show:      show,
@@ -108,36 +121,46 @@ func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
 		}
 	}
 
-	panic("runtime error")
+	if fl.Item.Type() == parse.ItemTrue || fl.Item.Type() == parse.ItemFalse {
+		f := fl.Item.Type() == parse.ItemTrue
+		t = field{
+			order:      ctx.order,
+			name:       name,
+			show:       show,
+			typ:        fieldTypeStaticBool,
+			staticBool: f,
+		}
+	}
+	return t
 }
 
 func getFieldColumn(ctx *context, fl parse.Field, show bool) (field, error) {
 	if fl.Table != "" && fl.Table != ctx.table {
 		return field{}, fmt.Errorf("table %s is not in select, join is not supported", fl.Table)
 	}
-	_, ok := ctx.definition[fl.Column]
+	_, ok := ctx.definition[fl.Item.Value()]
 	if !ok {
-		return field{}, fmt.Errorf("field %s is not available in table %s", fl.Column, ctx.table)
+		return field{}, fmt.Errorf("field %s is not available in table %s", fl.Item.Value(), ctx.table)
 	}
 
 	defer func() {
 		ctx.order++
 	}()
-	if o, sel := ctx.selected[fl.Column]; sel {
+	if o, sel := ctx.selected[fl.Item.Value()]; sel {
 		// this is already selected, simply use the copy type for it
 		return field{
 			order: ctx.order,
-			name:  fl.Column,
+			name:  fl.Item.Value(),
 			show:  show,
 			typ:   fieldTypeCopy,
 			copy:  o,
 		}, nil
 	}
 
-	ctx.selected[fl.Column] = ctx.order
+	ctx.selected[fl.Item.Value()] = ctx.order
 	return field{
 		order: ctx.order,
-		name:  fl.Column,
+		name:  fl.Item.Value(),
 		show:  show,
 		typ:   fieldTypeColumn,
 	}, nil
@@ -146,22 +169,20 @@ func getFieldColumn(ctx *context, fl parse.Field, show bool) (field, error) {
 func getFieldStar(ctx *context) []field {
 	res := make([]field, len(ctx.definition))
 	for i := range ctx.definition {
-		res[ctx.definition[i].Order()], _ = getFieldColumn(ctx, parse.Field{Column: i}, true)
+		res[ctx.definition[i].Order()], _ = getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
 	}
 	return res
 }
 
 func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) {
-	if fl.Function == nil {
-		panic("runtime error")
-	}
-	if !structures.HasFunction(fl.Function.Name) {
-		return nil, fmt.Errorf("function '%s' is not registered", fl.Function.Name)
+	assertType(fl.Item, parse.ItemFunc)
+	if !structures.HasFunction(fl.Item.Value()) {
+		return nil, fmt.Errorf("function '%s' is not registered", fl.Item.Value())
 	}
 	f := []field{
 		field{
 			order: ctx.order,
-			name:  fl.Function.Name,
+			name:  fl.Item.Value(),
 			show:  show,
 			typ:   fieldTypeFunction,
 		},
@@ -169,7 +190,7 @@ func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) 
 	var params []field
 	ctx.order++
 	var err error
-	params, f[0].argsOrder, err = getFields(ctx, false, fl.Function.Parameters...)
+	params, f[0].argsOrder, err = getFields(ctx, false, fl.Parameters...)
 	if err != nil {
 		return nil, err
 	}
@@ -182,14 +203,14 @@ func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, err
 	for i := range fls {
 		direct = append(direct, ctx.order)
 		switch {
-		case fls[i].WildCard:
+		case fls[i].Item.Type() == parse.ItemWildCard:
 			if !show {
 				return nil, nil, fmt.Errorf("invalid * position")
 			}
 			res = append(res, getFieldStar(ctx)...)
-		case fls[i].String != "" || fls[i].Number != "":
+		case fls[i].Item.Type() == parse.ItemTrue || fls[i].Item.Type() == parse.ItemFalse || fls[i].Item.Type() == parse.ItemNull || fls[i].Item.Type() == parse.ItemLiteral1 || fls[i].Item.Type() == parse.ItemNumber:
 			res = append(res, getStaticColumn(ctx, fls[i], show))
-		case fls[i].Function != nil:
+		case fls[i].Item.Type() == parse.ItemFunc:
 			fs, err := getFieldFunction(ctx, fls[i], show)
 			if err != nil {
 				return nil, nil, err
@@ -210,7 +231,7 @@ func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, err
 func getOrderFileds(ctx *context, o ...parse.Order) ([]field, error) {
 	var res []field
 	for i := range o {
-		fs, err := getFieldColumn(ctx, parse.Field{Column: o[i].Field}, false)
+		fs, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, o[i].Field, 0)}, false)
 		if err != nil {
 			return nil, err
 		}
@@ -232,24 +253,23 @@ func getWhereField(ctx *context) (parse.Stack, []field, error) {
 			}
 			ts := p
 			switch p.Type() {
-			case parse.ItemAlpha:
-				// this must be a column name
-				v := strings.ToLower(p.Value())
-				if v == "null" || v == "true" || v == "false" {
-					break
-				}
-				fallthrough
-			case parse.ItemLiteral2:
+			case parse.ItemAlpha, parse.ItemLiteral2:
 				v := parse.GetTokenString(p)
-				f, err := getFieldColumn(ctx, parse.Field{Column: v}, false)
+				f, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, v, 0)}, false)
 				if err != nil {
 					return nil, nil, err
 				}
 				res = append(res, f)
-				ts = col{
-					index: f.order,
-					field: v,
+				ts = newItem(itemColumn, v, f.order)
+			case parse.ItemFunc:
+				fn := p.(parse.FuncItem)
+				fs, err := getFieldFunction(ctx, parse.Field{Item: p, Parameters: fn.Parameters()}, false)
+				if err != nil {
+					return nil, nil, err
 				}
+				res = append(res, fs...)
+				// function is calculated on fill gaps, then simply we can use the result at the end a static
+				ts = newItem(itemColumn, fn.Value(), fs[0].order)
 			}
 			s.Push(ts)
 		}
@@ -258,7 +278,7 @@ func getWhereField(ctx *context) (parse.Stack, []field, error) {
 
 }
 
-func selectColumn2(ctx *context) error {
+func selectColumn(ctx *context) error {
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 	tbl, err := structures.GetTable(ss.Table)
 	if err != nil {
@@ -320,6 +340,8 @@ func fillGaps(ctx *context, res []structures.Valuer) error {
 			res[i] = structures.Number{Number: fl[i].staticNum}
 		case fieldTypeStaticString:
 			res[i] = structures.String{String: fl[i].staticStr}
+		case fieldTypeStaticBool:
+			res[i] = structures.Bool{Bool: fl[i].staticBool}
 		}
 	}
 
