@@ -25,10 +25,11 @@ type (
 var (
 	operGetterMap = map[parse.ItemType]operGetter{
 		itemColumn:         fieldGetterGenerator,
-		parse.ItemAlpha:    alphaGetterGenerator,
 		parse.ItemLiteral1: literal1GetterGenerator,
 		parse.ItemNumber:   numberGetterGenerator,
 		parse.ItemNull:     nullGetterGenerator,
+		parse.ItemTrue:     boolGetterGenerator,
+		parse.ItemFalse:    boolGetterGenerator,
 	}
 
 	opGetterMap = map[parse.ItemType]opGetter{
@@ -61,37 +62,32 @@ func (g getter) String() string {
 	return ""
 }
 
-func nullGetterGenerator(t parse.Item) getter {
-	if t.Type() != parse.ItemNull {
-		panic("runtime error")
+func assertType(t parse.Item, tp ...parse.ItemType) {
+	for i := range tp {
+		if tp[i] == t.Type() {
+			return
+		}
 	}
+	panic("runtime error")
+}
+
+func nullGetterGenerator(t parse.Item) getter {
+	assertType(t, parse.ItemNull)
 	return func(in []structures.Valuer) interface{} {
 		return nullValue
 	}
 }
 
-func alphaGetterGenerator(t parse.Item) getter {
-	if t.Type() != parse.ItemAlpha {
-		panic("runtime error")
-	}
-	switch strings.ToLower(t.Value()) {
-	case "true":
-		return func([]structures.Valuer) interface{} {
-			return true
-		}
-	case "false":
-		return func([]structures.Valuer) interface{} {
-			return false
-		}
-	default:
-		panic("runtime error")
+func boolGetterGenerator(t parse.Item) getter {
+	assertType(t, parse.ItemTrue, parse.ItemFalse)
+	res := t.Type() == parse.ItemTrue
+	return func(in []structures.Valuer) interface{} {
+		return res
 	}
 }
 
 func fieldGetterGenerator(t parse.Item) getter {
-	if t.Type() != itemColumn {
-		panic("runtime error")
-	}
+	assertType(t, itemColumn)
 	var idx = t.Pos()
 	return func(in []structures.Valuer) interface{} {
 		switch t := in[idx].(type) {
@@ -117,9 +113,7 @@ func fieldGetterGenerator(t parse.Item) getter {
 }
 
 func literal1GetterGenerator(t parse.Item) getter {
-	if t.Type() != parse.ItemLiteral1 {
-		panic("runtime error")
-	}
+	assertType(t, parse.ItemLiteral1)
 	var v = parse.GetTokenString(t)
 	return func([]structures.Valuer) interface{} {
 		return v
@@ -127,9 +121,7 @@ func literal1GetterGenerator(t parse.Item) getter {
 }
 
 func numberGetterGenerator(t parse.Item) getter {
-	if t.Type() != parse.ItemNumber {
-		panic("runtime error")
-	}
+	assertType(t, parse.ItemNumber)
 	v, _ := strconv.ParseFloat(t.Value(), 10)
 	return func([]structures.Valuer) interface{} {
 		return v

@@ -15,9 +15,62 @@ func TestSelectSimple(t *testing.T) {
 	assert.Equal(t, "test", ss.Table)
 
 	assert.Equal(t, 3, len(ss.Fields))
-	assert.Equal(t, Field{Column: "a"}, ss.Fields[0])
-	assert.Equal(t, Field{Column: "b"}, ss.Fields[1])
-	assert.Equal(t, Field{Column: "c", Table: "test"}, ss.Fields[2])
+	assert.Equal(t, "a", ss.Fields[0].Item.Value())
+	assert.Equal(t, "b", ss.Fields[1].Item.Value())
+	assert.Equal(t, "c", ss.Fields[2].Item.Value())
+	assert.Equal(t, "test", ss.Fields[2].Table)
+
+	q = "SELECT func(a,'b',10), c, 10, 'string' FROM test"
+	stmt, err = AST(q)
+	assert.NoError(t, err)
+	assert.IsType(t, &SelectStmt{}, stmt.Statement)
+	ss = stmt.Statement.(*SelectStmt)
+	assert.Equal(t, "test", ss.Table)
+
+	assert.Equal(t, 4, len(ss.Fields))
+	fn := ss.Fields[0]
+	assert.Equal(t, "func", fn.Item.Value())
+	assert.Equal(t, 3, len(fn.Parameters))
+	assert.Equal(t, "a", fn.Parameters[0].Item.Value())
+	assert.Equal(t, ItemAlpha, fn.Parameters[0].Item.Type())
+	assert.Equal(t, "'b'", fn.Parameters[1].Item.Value())
+	assert.Equal(t, ItemLiteral1, fn.Parameters[1].Item.Type())
+	assert.Equal(t, "10", fn.Parameters[2].Item.Value())
+	assert.Equal(t, ItemNumber, fn.Parameters[2].Item.Type())
+
+	assert.Equal(t, "c", ss.Fields[1].Item.Value())
+	assert.Equal(t, ItemAlpha, ss.Fields[1].Item.Type())
+	assert.Equal(t, "10", ss.Fields[2].Item.Value())
+	assert.Equal(t, ItemNumber, ss.Fields[2].Item.Type())
+	assert.Equal(t, "'string'", ss.Fields[3].Item.Value())
+	assert.Equal(t, ItemLiteral1, ss.Fields[3].Item.Type())
+
+	q = "SELECT FN1(FN2(FN3(), x)) FROM test"
+	stmt, err = AST(q)
+	assert.NoError(t, err)
+	assert.IsType(t, &SelectStmt{}, stmt.Statement)
+	ss = stmt.Statement.(*SelectStmt)
+	assert.Equal(t, "test", ss.Table)
+
+	assert.Equal(t, 1, len(ss.Fields))
+	fn1 := ss.Fields[0]
+	assert.Equal(t, "FN1", fn1.Item.Value())
+	assert.Equal(t, 1, len(fn1.Parameters))
+	assert.Equal(t, ItemFunc, fn1.Parameters[0].Item.Type())
+	fn2 := fn1.Parameters[0]
+	assert.Equal(t, "FN2", fn2.Item.Value())
+	assert.Equal(t, 2, len(fn2.Parameters))
+	assert.Equal(t, "x", fn2.Parameters[1].Item.Value())
+	assert.Equal(t, ItemAlpha, fn2.Parameters[1].Item.Type())
+
+	assert.Equal(t, ItemFunc, fn2.Parameters[0].Item.Type())
+	fn3 := fn2.Parameters[0]
+	assert.Equal(t, "FN3", fn3.Item.Value())
+	assert.Equal(t, 0, len(fn3.Parameters))
+
+	q = "SELECT * FROM x where  x (  )"
+	stmt, err = AST(q)
+	assert.NoError(t, err)
 
 	q = "SELECT a,, FROM test"
 	stmt, err = AST(q)
@@ -33,6 +86,22 @@ func TestSelectSimple(t *testing.T) {
 	stmt, err = AST(q)
 	assert.Error(t, err)
 	assert.Nil(t, stmt)
+
+	q = "SELECT func(invalid,) FROM test "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT func(invalid,  test  |)  "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT test. From test "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
 }
 
 func pop(t *testing.T, stack Stack) Item {
@@ -50,7 +119,7 @@ func TestSelectWhere(t *testing.T) {
 	assert.Equal(t, "test", ss.Table)
 
 	assert.Equal(t, 1, len(ss.Fields))
-	assert.Equal(t, Field{WildCard: true}, ss.Fields[0])
+	assert.Equal(t, ItemWildCard, ss.Fields[0].Item.Type())
 
 	ip := pop(t, ss.Where)
 	assert.Equal(t, ItemEqual, ip.Type())
@@ -116,7 +185,17 @@ func TestSelectWhere(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, stmt)
 
-	q = "SELECT * FROM x where  x (  )"
+	q = "SELECT * FROM x where fn () ()"
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT * FROM x where fn (x,) "
+	stmt, err = AST(q)
+	assert.Error(t, err)
+	assert.Nil(t, stmt)
+
+	q = "SELECT * FROM x where fn (x|) "
 	stmt, err = AST(q)
 	assert.Error(t, err)
 	assert.Nil(t, stmt)

@@ -10,6 +10,7 @@ const (
 	whereAlpha
 	whereOp
 	whereNotOp
+	whereFunc
 )
 
 var (
@@ -35,6 +36,8 @@ func isOperator(t ItemType) bool {
 func isOperand(t ItemType) bool {
 	return t == ItemNumber ||
 		t == ItemAlpha ||
+		t == ItemFalse ||
+		t == ItemTrue ||
 		t == ItemLiteral1 ||
 		t == ItemLiteral2 ||
 		t == ItemNot ||
@@ -45,37 +48,89 @@ func isKeyword(t ItemType) bool {
 	return t == ItemOrder || t == ItemLimit || t == ItemEOF
 }
 
-func (ss *SelectStmt) parseField(p *parser) (Field, error) {
+func parseField(p *parser) (Field, error) {
 	token := p.scanIgnoreWhiteSpace()
 	if token.typ == ItemWildCard {
-		return Field{WildCard: true}, nil
+		return Field{Item: token}, nil
+	}
+
+	if token.typ == ItemAlpha {
+		ahead := p.scanIgnoreWhiteSpace()
+		if ahead.typ == ItemParenOpen {
+			// function
+			fileds, err := parseFields(p, true)
+			if err != nil {
+				return Field{}, err
+			}
+			ahead = p.scanIgnoreWhiteSpace()
+			if ahead.typ != ItemParenClose {
+				return Field{}, fmt.Errorf("expected ) but got %s", ahead)
+			}
+			name := GetTokenString(token)
+			return Field{
+				Alias: name,
+				Item: item{
+					typ:   ItemFunc,
+					pos:   len(fileds),
+					value: name,
+				},
+				Parameters: fileds,
+			}, nil
+		}
+		p.reject()
 	}
 
 	if token.typ == ItemAlpha || token.typ == ItemLiteral2 {
 		ahead := p.scan() // white space is not allowed here
-		if ahead.typ != ItemDot {
-			p.reject()
-			return Field{Column: GetTokenString(token)}, nil
+		if ahead.typ == ItemDot {
+			ahead = p.scan()
+			if ahead.typ == ItemAlpha || ahead.typ == ItemLiteral2 {
+				return Field{
+					Table: GetTokenString(token),
+					Item: item{
+						typ:   ItemAlpha,
+						pos:   ahead.pos,
+						value: GetTokenString(ahead),
+					},
+				}, nil
+			}
+			return Field{}, fmt.Errorf("expected field name got %s", ahead)
 		}
-		ahead = p.scan()
-		if ahead.typ == ItemAlpha || ahead.typ == ItemLiteral2 {
-			return Field{
-				Table:  GetTokenString(token),
-				Column: GetTokenString(ahead),
-			}, nil
-		}
+		p.reject() // nope its not a dot
+		return Field{
+			Item: item{
+				typ:   ItemAlpha,
+				pos:   token.Pos(),
+				value: GetTokenString(token),
+			},
+		}, nil
+	}
+
+	if token.typ == ItemNumber || token.typ == ItemTrue || token.typ == ItemFalse || token.typ == ItemNull || token.typ == ItemLiteral1 {
+		return Field{
+			Item: token,
+		}, nil
 	}
 
 	return Field{}, fmt.Errorf("unexpected token, %s", token)
 }
 
-func (ss *SelectStmt) parseFields(p *parser) error {
-	for {
-		field, err := ss.parseField(p)
-		if err != nil {
-			return err
+func parseFields(p *parser, fn bool) (Fields, error) {
+	var res Fields
+	if fn {
+		ahead := p.scanIgnoreWhiteSpace()
+		if ahead.typ == ItemParenClose {
+			p.reject()
+			return Fields{}, nil
 		}
-		ss.Fields = append(ss.Fields, field)
+		p.reject()
+	}
+	for {
+		field, err := parseField(p)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, field)
 
 		comma := p.scanIgnoreWhiteSpace()
 		if comma.typ != ItemComma {
@@ -83,11 +138,13 @@ func (ss *SelectStmt) parseFields(p *parser) error {
 			break
 		}
 	}
-	return nil
+	return res, nil
 }
 
 func (ss *SelectStmt) parse(p *parser) error {
-	if err := ss.parseFields(p); err != nil {
+	var err error
+	ss.Fields, err = parseFields(p, false)
+	if err != nil {
 		return err
 	}
 
@@ -177,7 +234,7 @@ func (p *parser) operand(ahead item, op, final Stack, expected int) (int, error)
 		expected = whereAlpha | whereNotOp
 	} else {
 		final.Push(ahead)
-		expected = whereOp
+		expected = whereOp | whereFunc
 	}
 
 	if not {
@@ -206,9 +263,33 @@ func (p *parser) parenClose(ahead item, op, final Stack, expected int) (int, err
 }
 
 func (p *parser) parenOpen(ahead item, op, final Stack, expected int) (int, error) {
-	if expected|whereStart != expected && expected|whereAlpha != expected {
+	if expected|whereStart != expected && expected|whereAlpha != expected && expected|whereFunc != expected {
 		return 0, fmt.Errorf("wrong '(' ")
 	}
+	if expected|whereFunc == expected {
+		// function is ok!
+		// scan for func parameters
+		f, err := parseFields(p, true)
+		if err != nil {
+			return 0, err
+		}
+		cl := p.scanIgnoreWhiteSpace()
+		if cl.typ != ItemParenClose {
+			return 0, fmt.Errorf("expected ) but %s", cl)
+		}
+		fn, err := final.Pop()
+		assertTrue(err == nil, "why :/")
+		final.Push(&itemFn{
+			item: item{
+				typ:   ItemFunc,
+				pos:   len(f),
+				value: fn.Value(),
+			},
+			parameter: f,
+		})
+		return whereOp, nil
+	}
+
 	op.Push(ahead)
 	return expected, nil
 }

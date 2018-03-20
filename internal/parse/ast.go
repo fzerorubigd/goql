@@ -15,16 +15,31 @@ type Statement interface {
 	parse(*parser) error
 }
 
-// Field is the fields inside select
+// Field is the fields inside select and functions, for functions the parameters is valid
 type Field struct {
-	WildCard bool // aka '*'
-	//Alias    string // add support for this? :))
-	Table  string // the part before dot
-	Column string // the column
+	Table      string
+	Alias      string
+	Item       Item
+	Parameters Fields
 }
 
 // Fields is the collection of fields with order
 type Fields []Field
+
+type itemFn struct {
+	item
+	parameter Fields
+}
+
+func (i itemFn) Parameters() Fields {
+	return i.parameter
+}
+
+// FuncItem is an item with its parameter for where
+type FuncItem interface {
+	Item
+	Parameters() Fields
+}
 
 // Order is one order in the order array
 type Order struct {

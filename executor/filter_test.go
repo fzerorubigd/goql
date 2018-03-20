@@ -8,28 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type dummy struct {
-	typ   parse.ItemType
-	pos   int
-	value string
-}
-
-func (d dummy) Type() parse.ItemType {
-	return d.typ
-}
-
-func (d dummy) Pos() int {
-	return d.pos
-}
-
-func (d dummy) Value() string {
-	return d.value
-}
-
-func (d dummy) String() string {
-	return "dummy"
-}
-
 var (
 	rowTest = []structures.Valuer{
 		structures.Number{Number: 1},
@@ -41,14 +19,6 @@ var (
 		unknown{},
 	}
 )
-
-func newItem(t parse.ItemType, v string, p int) parse.Item {
-	return dummy{
-		typ:   t,
-		pos:   p,
-		value: v,
-	}
-}
 
 func newGetter(in interface{}) getter {
 	return func([]structures.Valuer) interface{} {
@@ -62,10 +32,10 @@ func TestWhereOp(t *testing.T) {
 	assert.Equal(t, nullValue, nullGetterGenerator(newItem(parse.ItemNull, "", 0))(nil))
 
 	// alpha
-	assert.Panics(t, func() { alphaGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
-	assert.Equal(t, true, alphaGetterGenerator(newItem(parse.ItemAlpha, "true", 0))(nil))
-	assert.Equal(t, false, alphaGetterGenerator(newItem(parse.ItemAlpha, "false", 0))(nil))
-	assert.Panics(t, func() { alphaGetterGenerator(newItem(parse.ItemAlpha, "anything", 0))(nil) })
+	//assert.Panics(t, func() { alphaGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
+	//assert.Equal(t, true, alphaGetterGenerator(newItem(parse.ItemAlpha, "true", 0))(nil))
+	//assert.Equal(t, false, alphaGetterGenerator(newItem(parse.ItemAlpha, "false", 0))(nil))
+	//assert.Panics(t, func() { alphaGetterGenerator(newItem(parse.ItemAlpha, "anything", 0))(nil) })
 
 	// field
 	assert.Panics(t, func() { fieldGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
@@ -177,4 +147,8 @@ func TestWhereOp(t *testing.T) {
 	assert.Panics(t, func() { getGetter(newItem(parse.ItemEOF, "", 0)) })
 	assert.Panics(t, func() { getOpGetter(newItem(parse.ItemEOF, "", 0), newGetter(1.0), newGetter(1.0)) })
 
+	assert.Equal(t, 0, newGetter("string").Pos())
+	assert.Equal(t, "", newGetter("string").Value())
+	assert.Equal(t, itemGetter, newGetter("string").Type())
+	assert.Equal(t, "", newGetter("string").String())
 }

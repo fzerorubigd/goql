@@ -188,7 +188,8 @@ func RegisterField(t string, name string, valuer interface{}) {
 	}
 }
 
-// GetFields is the get field fro a table
+// GetFields is the get field for a table, empty field name is ignored, so the caller could fill
+// calculated item
 func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -203,6 +204,9 @@ func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) e
 
 	var invalid []string
 	for i := range fields {
+		if fields[i] == "" {
+			continue
+		}
 		if _, ok := tbl.fields[fields[i]]; !ok {
 			invalid = append(invalid, fields[i])
 		}
@@ -213,11 +217,20 @@ func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) e
 
 	// do concurrently
 	go func() {
+		defer func() {
+			if e := recover(); e != nil {
+				// closed channel? ignore it
+			}
+		}()
 		defer close(res)
 		cache := tbl.data.Provide(p)
 		for i := range cache {
 			n := make([]Valuer, len(fields))
 			for f := range fields {
+				if fields[f] == "" {
+					// this is a placeholder
+					continue
+				}
 				switch t := tbl.fields[fields[f]].typ.(type) {
 				case StringValuer:
 					n[f] = t.Value(cache[i])

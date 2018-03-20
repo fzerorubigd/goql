@@ -25,4 +25,11 @@ func TestGetStringToken(t *testing.T) {
 	}
 	assert.Panics(t, func() { GetTokenString(i) })
 
+	j := itemFn{
+		item:      i,
+		parameter: Fields{Field{}},
+	}
+
+	assert.Equal(t, Fields{Field{}}, j.Parameters())
+
 }
