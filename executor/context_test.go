@@ -50,6 +50,24 @@ func (provider) Provide(in interface{}) []interface{} {
 	return res
 }
 
+type concat struct {
+}
+
+func (concat) Execute(in ...structures.Valuer) (structures.Valuer, error) {
+	s := ""
+	for i := range in {
+		s += fmt.Sprint(in[i].Value())
+	}
+	return structures.String{String: s}, nil
+}
+
+type wrong struct {
+}
+
+func (wrong) Execute(in ...structures.Valuer) (structures.Valuer, error) {
+	return nil, fmt.Errorf("hi, i am error")
+}
+
 func ast(q string) *parse.Query {
 	ast, err := parse.AST(q)
 	if err != nil {
@@ -59,6 +77,7 @@ func ast(q string) *parse.Query {
 }
 
 func TestContext(t *testing.T) {
+	structures.RegisterFunction("concat", concat{})
 	structures.RegisterTable("test", provider{})
 
 	structures.RegisterField("test", "c1", c1{})
@@ -120,9 +139,18 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, []string{"c1", "c2", "c3"}, row)
 	assert.Equal(t, 0, len(data))
 
+	q = "SELECT concat(c2, 'string'), 10 FROM test where true limit 1"
+	row, data, err = Execute(tablet(10), ast(q))
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(row))
+	assert.Equal(t, []string{"concat", "static"}, row)
+	assert.Equal(t, 1, len(data))
+	assert.Equal(t, "0th rowstring", data[0][0].Value())
+	assert.Equal(t, 10.0, data[0][1].Value())
 }
 
 func TestContextErr(t *testing.T) {
+	structures.RegisterFunction("wrong", wrong{})
 	// Err
 	q := "SELECT c1, c2 FROM notexists"
 	row, data, err := Execute(tablet(100), ast(q))
@@ -160,6 +188,31 @@ func TestContextErr(t *testing.T) {
 
 	// Err
 	q = "SELECT c1, c2 FROM test ORDER BY no"
+	row, data, err = Execute(tablet(100), ast(q))
+	assert.Error(t, err)
+	assert.Nil(t, row)
+	assert.Nil(t, data)
+
+	q = "SELECT c1, fuuunccc(c2) FROM test"
+	row, data, err = Execute(tablet(100), ast(q))
+	assert.Error(t, err)
+	assert.Nil(t, row)
+	assert.Nil(t, data)
+
+	q = "SELECT c1, concat(c22) FROM test"
+	row, data, err = Execute(tablet(100), ast(q))
+	assert.Error(t, err)
+	assert.Nil(t, row)
+	assert.Nil(t, data)
+
+	// Not supporting func(*)
+	q = "SELECT c1, concat(*) FROM test"
+	row, data, err = Execute(tablet(100), ast(q))
+	assert.Error(t, err)
+	assert.Nil(t, row)
+	assert.Nil(t, data)
+
+	q = "SELECT c1, wrong(c2) FROM test"
 	row, data, err = Execute(tablet(100), ast(q))
 	assert.Error(t, err)
 	assert.Nil(t, row)

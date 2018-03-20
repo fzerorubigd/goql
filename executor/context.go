@@ -87,7 +87,7 @@ func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
 	defer func() {
 		ctx.order++
 	}()
-	name := fmt.Sprintf("COL_%d", ctx.order+1)
+	name := "static"
 	if fl.String != "" {
 		return field{
 			order:     ctx.order,
@@ -101,7 +101,7 @@ func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
 		f, _ := strconv.ParseFloat(fl.Number, 64)
 		return field{
 			order:     ctx.order,
-			name:      fmt.Sprintf("COL_%d", ctx.order+1),
+			name:      name,
 			show:      show,
 			typ:       fieldTypeStaticNumber,
 			staticNum: f,
@@ -177,7 +177,7 @@ func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) 
 }
 
 func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, error) {
-	var direct = make([]int, len(fls))
+	var direct []int
 	var res []field
 	for i := range fls {
 		direct = append(direct, ctx.order)
