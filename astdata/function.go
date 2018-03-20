@@ -18,6 +18,7 @@ type Function struct {
 	receiverPointer bool
 
 	body string
+	Type *FuncType
 }
 
 // Name return the name of the function
@@ -71,6 +72,7 @@ func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 		file: fl,
 		fn:   f,
 		name: nameFromIdent(f.Name),
+		Type: getFunc(p, fl, f.Type).(*FuncType),
 	}
 
 	if res.fn.Recv != nil {
