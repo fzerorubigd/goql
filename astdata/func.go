@@ -8,9 +8,10 @@ import (
 // FuncType is the single function
 type FuncType struct {
 	pkg *Package
+	fl  *File
 
-	Parameters []*Variable
-	Results    []*Variable
+	parameters []*Variable
+	results    []*Variable
 }
 
 func (f *FuncType) getDefinitionWithName(name string) string {
@@ -20,19 +21,19 @@ func (f *FuncType) getDefinitionWithName(name string) string {
 // Sign return the function sign
 func (f *FuncType) Sign() string {
 	var args, res []string
-	for a := range f.Parameters {
-		args = append(args, f.Parameters[a].Type.String())
+	for a := range f.parameters {
+		args = append(args, f.parameters[a].def.String())
 	}
 
-	for a := range f.Results {
-		res = append(res, f.Results[a].Type.String())
+	for a := range f.results {
+		res = append(res, f.results[a].def.String())
 	}
 
-	result := "(" + strings.Join(args, ",") + ")"
+	result := "(" + strings.Join(args, ", ") + ")"
 	if len(res) > 1 {
-		result += " (" + strings.Join(res, ",") + ")"
+		result += " (" + strings.Join(res, ", ") + ")"
 	} else {
-		result += " " + strings.Join(res, ",")
+		result += " " + strings.Join(res, ", ")
 	}
 
 	return result
@@ -40,12 +41,27 @@ func (f *FuncType) Sign() string {
 
 // String is the string representation of func type
 func (f *FuncType) String() string {
-	return "func " + f.Sign()
+	return f.getDefinitionWithName("func ")
 }
 
 // Package is the func package
 func (f *FuncType) Package() *Package {
 	return f.pkg
+}
+
+// File of the type
+func (f *FuncType) File() *File {
+	return f.fl
+}
+
+// Parameters is the parameter of the function
+func (f *FuncType) Parameters() []*Variable {
+	return f.parameters
+}
+
+// Results is the result of the functions
+func (f *FuncType) Results() []*Variable {
+	return f.results
 }
 
 func getVariableList(p *Package, fl *File, f *ast.FieldList) []*Variable {
@@ -73,7 +89,8 @@ func getVariableList(p *Package, fl *File, f *ast.FieldList) []*Variable {
 func getFunc(p *Package, f *File, t *ast.FuncType) Definition {
 	return &FuncType{
 		pkg:        p,
-		Parameters: getVariableList(p, f, t.Params),
-		Results:    getVariableList(p, f, t.Results),
+		fl:         f,
+		parameters: getVariableList(p, f, t.Params),
+		results:    getVariableList(p, f, t.Results),
 	}
 }

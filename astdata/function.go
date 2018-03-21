@@ -18,7 +18,7 @@ type Function struct {
 	receiverPointer bool
 
 	body string
-	Type *FuncType
+	def  *FuncType
 }
 
 // Name return the name of the function
@@ -65,6 +65,16 @@ func (f *Function) Body() string {
 	return f.body
 }
 
+// Definition return the definition of the func
+func (f *Function) Definition() Definition {
+	return f.def
+}
+
+// Func return the definition in correct cast. for faster access without a cast
+func (f *Function) Func() *FuncType {
+	return f.def
+}
+
 // newFunction return a single function annotation
 func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 	res := &Function{
@@ -72,7 +82,7 @@ func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 		file: fl,
 		fn:   f,
 		name: nameFromIdent(f.Name),
-		Type: getFunc(p, fl, f.Type).(*FuncType),
+		def:  getFunc(p, fl, f.Type).(*FuncType),
 	}
 
 	if res.fn.Recv != nil {

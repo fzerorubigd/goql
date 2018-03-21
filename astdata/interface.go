@@ -19,7 +19,7 @@ func (i *InterfaceType) String() string {
 		res += "\t" + i.Embeds[e].String() + "\n"
 	}
 	for f := range i.Functions {
-		res += "\t" + i.Functions[f].Type.getDefinitionWithName(i.Functions[f].name) + "\n"
+		res += "\t" + i.Functions[f].def.getDefinitionWithName(i.Functions[f].name) + "\n"
 	}
 	return res + "}"
 }
@@ -40,7 +40,7 @@ func getInterface(p *Package, f *File, t *ast.InterfaceType) Definition {
 
 			res.docs = docsFromNodeDoc(t.Methods.List[i].Doc)
 			typ := newType(p, f, t.Methods.List[i].Type)
-			res.Type = typ.(*FuncType)
+			res.def = typ.(*FuncType)
 			iface.Functions = append(iface.Functions, &res)
 		} else {
 			// This is the embedded interface

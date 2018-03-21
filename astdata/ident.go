@@ -4,12 +4,14 @@ import "go/ast"
 
 // IdentType is the normal type name
 type IdentType struct {
-	pkg   *Package
-	Ident string
+	pkg *Package
+	fl  *File
+
+	ident string
 }
 
 func (i *IdentType) String() string {
-	return i.Ident
+	return i.ident
 }
 
 // Package get the package of ident
@@ -17,7 +19,17 @@ func (i *IdentType) Package() *Package {
 	return i.pkg
 }
 
-func getIdent(p *Package, _ *File, t *ast.Ident) Definition {
+// File return the file of the type
+func (i *IdentType) File() *File {
+	return i.fl
+}
+
+// Ident is the ident of this type
+func (i *IdentType) Ident() string {
+	return i.ident
+}
+
+func getIdent(p *Package, f *File, t *ast.Ident) Definition {
 	// ident is the simplest one (I was wrong :)) ).
 	ident := nameFromIdent(t)
 	//	if isBuiltinIdent(ident) {
@@ -25,12 +37,13 @@ func getIdent(p *Package, _ *File, t *ast.Ident) Definition {
 	//	}
 	return &IdentType{
 		pkg:   p,
-		Ident: ident,
+		fl:    f,
+		ident: ident,
 	}
 }
 
 func getBasicIdent(t string) Definition {
 	return &IdentType{
-		Ident: t,
+		ident: t,
 	}
 }

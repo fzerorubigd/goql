@@ -14,7 +14,7 @@ type Variable struct {
 	name string
 	docs Docs
 
-	Type Definition
+	def Definition
 
 	caller *ast.CallExpr
 	index  int
@@ -38,6 +38,11 @@ func (v *Variable) Package() *Package {
 // File the filename of this variable
 func (v *Variable) File() *File {
 	return v.fl
+}
+
+// Definition return the variable definition
+func (v *Variable) Definition() Definition {
+	return v.def
 }
 
 func getBuiltinFunc(name string, v *Variable) Definition {
@@ -65,10 +70,10 @@ func getBuiltinFunc(name string, v *Variable) Definition {
 func getNormalFunc(name string, v *Variable) (Definition, error) {
 	fn, err := v.pkg.FindFunction(name)
 	if err == nil {
-		if len(fn.Type.Results) <= v.index {
-			return nil, fmt.Errorf("%d result is available but want the %d", len(fn.Type.Results), v.index)
+		if len(fn.def.results) <= v.index {
+			return nil, fmt.Errorf("%d result is available but want the %d", len(fn.def.results), v.index)
 		}
-		return fn.Type.Results[v.index].Type, nil
+		return fn.def.results[v.index].def, nil
 	}
 	t, err := checkTypeCast(v.pkg, getBuiltin(), v.caller.Args, name)
 	if err != nil {
@@ -109,7 +114,7 @@ func newVariableFromValue(p *Package, f *File, name string, index int, e []ast.E
 		pkg:    p,
 		fl:     f,
 		name:   name,
-		Type:   t,
+		def:    t,
 		caller: caller,
 		index:  index,
 	}
@@ -140,7 +145,7 @@ func newVariableFromExpr(p *Package, f *File, name string, e ast.Expr) *Variable
 		pkg:  p,
 		fl:   f,
 		name: name,
-		Type: newType(p, f, e),
+		def:  newType(p, f, e),
 	}
 
 }

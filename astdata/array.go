@@ -9,9 +9,10 @@ import (
 // ArrayType is the base array
 type ArrayType struct {
 	pkg   *Package
-	Slice bool
-	Len   int
-	Type  Definition
+	fl    *File
+	slice bool
+	len   int
+	def   Definition
 }
 
 // EllipsisType is slice type but with ...type definition
@@ -21,10 +22,10 @@ type EllipsisType struct {
 
 // String represent array in string
 func (a *ArrayType) String() string {
-	if a.Slice {
-		return "[]" + a.Type.String()
+	if a.slice {
+		return "[]" + a.def.String()
 	}
-	return fmt.Sprintf("[%d]%s", a.Len, a.Type.String())
+	return fmt.Sprintf("[%d]%s", a.len, a.def.String())
 }
 
 // Package return the array package
@@ -32,15 +33,35 @@ func (a *ArrayType) Package() *Package {
 	return a.pkg
 }
 
+// File return the file of this type
+func (a *ArrayType) File() *File {
+	return a.fl
+}
+
+// ValueDefinition return the definition of value
+func (a *ArrayType) ValueDefinition() Definition {
+	return a.def
+}
+
+// Len is the len of this array
+func (a *ArrayType) Len() int {
+	return a.len
+}
+
+// Slice means this array is an slice
+func (a *ArrayType) Slice() bool {
+	return a.slice
+}
+
 // String represent ellipsis array in string
 func (e *EllipsisType) String() string {
-	return fmt.Sprintf("[...]%s{}", e.Type.String())
+	return fmt.Sprintf("[...]%s", e.def.String())
 }
 
 func getArray(p *Package, f *File, t *ast.ArrayType) Definition {
 	slice := t.Len == nil
 	ellipsis := false
-	l := 0
+	var l int64
 	if !slice {
 		var (
 			ls string
@@ -49,16 +70,17 @@ func getArray(p *Package, f *File, t *ast.ArrayType) Definition {
 		case *ast.BasicLit:
 			ls = t.Len.(*ast.BasicLit).Value
 		case *ast.Ellipsis:
-			ls = "0"
+			ls = "0" // TODO : Detect this type size
 			ellipsis = true
 		}
-		l, _ = strconv.Atoi(ls)
+		l, _ = strconv.ParseInt(ls, 10, 0)
 	}
 	var at Definition = &ArrayType{
 		pkg:   p,
-		Slice: t.Len == nil,
-		Len:   l,
-		Type:  newType(p, f, t.Elt),
+		fl:    f,
+		slice: t.Len == nil,
+		len:   int(l),
+		def:   newType(p, f, t.Elt),
 	}
 	if ellipsis {
 		at = &EllipsisType{ArrayType: at.(*ArrayType)}
