@@ -4,7 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var testImport = `
+package example
+
+import "github.com/fzerorubigd/fixture"
+`
 
 func TestImport(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
@@ -29,4 +36,14 @@ func TestImport(t *testing.T) {
 	assert.Equal(t, "// comment http", f.Docs().String())
 	assert.Equal(t, p, f.Package())
 	assert.Equal(t, "main.go", f.File().FileName())
+
+	p = &Package{}
+	fl, err := ParseFile(testImport, p)
+	require.NoError(t, err)
+
+	p.files = append(p.files, fl)
+
+	for i := range fl.imports {
+		assert.Regexp(t, "github.com/fzerorubigd/fixture$", fl.imports[i].Folder())
+	}
 }

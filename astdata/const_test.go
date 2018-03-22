@@ -4,7 +4,30 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var testConst = `
+package example
+
+import "math"
+
+const (
+   ci = 10
+   cj = 100.0
+   ck = 10i
+   cl = "str"
+   cm = 'c'
+
+   pi = math.Pi
+)
+
+const (
+   eci = iota
+   ecj
+)
+
+`
 
 func TestConst(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
@@ -27,4 +50,14 @@ func TestConst(t *testing.T) {
 	//	assert.Equal(t, "main.go", c.File().FileName())
 	assert.Equal(t, "10", c.Value())
 
+	p = &Package{}
+	f, err := ParseFile(testConst, p)
+	require.NoError(t, err)
+
+	p.files = append(p.files, f)
+
+	c, err = p.FindConstant("ci")
+	require.NoError(t, err)
+	assert.Equal(t, f, c.File())
+	assert.Equal(t, p, c.Package())
 }

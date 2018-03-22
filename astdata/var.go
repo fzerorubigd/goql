@@ -56,9 +56,9 @@ func getBuiltinFunc(name string, v *Variable) Definition {
 		if fn.name == "new" {
 			tt := newType(v.pkg, v.fl, v.caller.Args[0])
 			return &StarType{
-				Target: tt,
-				pkg:    v.pkg,
-				file:   v.fl,
+				def: tt,
+				pkg: v.pkg,
+				fl:  v.fl,
 			}
 		}
 	}
