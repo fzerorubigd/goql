@@ -24,6 +24,8 @@ func TestChanType(t *testing.T) {
 
 	fn, err := p.FindFunction("XX")
 	assert.NoError(t, err)
+	assert.IsType(t, &FuncType{}, fn.Definition())
+
 	assert.Equal(t, 2, len(fn.def.parameters))
 	assert.Equal(t, 1, len(fn.def.results))
 

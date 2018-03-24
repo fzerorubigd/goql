@@ -91,16 +91,14 @@ func newFunction(p *Package, fl *File, f *ast.FuncDecl) *Function {
 			n = nameFromIdent(res.fn.Recv.List[0].Names[0])
 		}
 		res.receiver = newVariableFromExpr(res.pkg, res.file, n, res.fn.Recv.List[0].Type)
-
-		// a hack for function name
-		// TODO : after handling the definition its very simple to use that part
-		switch t := res.fn.Recv.List[0].Type.(type) {
-		case *ast.Ident:
-			res.receiverClass = nameFromIdent(t)
-		case *ast.StarExpr:
-			res.receiverClass = nameFromIdent(t.X.(*ast.Ident))
-			res.receiverPointer = true
+		var def Definition
+		var def2 *StarType
+		def = res.receiver.def
+		def2, res.receiverPointer = def.(*StarType)
+		if res.receiverPointer {
+			def = def2.Target()
 		}
+		res.receiverClass = def.String()
 	}
 	return res
 }

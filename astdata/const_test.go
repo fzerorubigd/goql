@@ -16,8 +16,9 @@ const (
    ci = 10
    cj = 100.0
    ck = 10i
-   cl = "str"
+   cl string = "str"
    cm = 'c'
+   cn = "another"
 
    pi = math.Pi
 )

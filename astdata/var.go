@@ -42,6 +42,9 @@ func (v *Variable) File() *File {
 
 // Definition return the variable definition
 func (v *Variable) Definition() Definition {
+	if v.def == nil && v.caller != nil {
+		v.bind()
+	}
 	return v.def
 }
 
@@ -80,6 +83,101 @@ func getNormalFunc(name string, v *Variable) (Definition, error) {
 		return nil, err
 	}
 	return t, err
+}
+
+func getForeignType(pkg *Package, pkgName string, fl *File, foreignTyp Definition) Definition {
+	star := false
+	if sType, ok := foreignTyp.(*StarType); ok {
+		foreignTyp = sType.def
+		star = true
+	}
+
+	switch ft := foreignTyp.(type) {
+	case *IdentType:
+		// this is a simple hack. if the type is begin with
+		// upper case, then its type on that package,
+		// else its a global type
+		name := ft.ident
+		c := name[0]
+		if c >= 'A' && c <= 'Z' {
+			var res Definition
+			res = &SelectorType{
+				selector: pkgName,
+				fl:       fl,
+				pkg:      pkg,
+				ident:    name,
+			}
+			if star {
+				res = &StarType{
+					def: res,
+				}
+			}
+			return res
+		}
+		return foreignTyp
+
+	default:
+		// the type is foreign to that package too, WTH :)
+		return ft
+	}
+
+}
+
+func (v *Variable) bind() error {
+	if v.caller != nil {
+		switch c := v.caller.Fun.(type) {
+		case *ast.Ident:
+			name := nameFromIdent(c)
+			t := getBuiltinFunc(name, v)
+			if t != nil {
+				v.def = t
+				break
+			}
+			t, err := getNormalFunc(name, v)
+			if err != nil {
+				return err
+			}
+			v.def = t
+
+		case *ast.SelectorExpr:
+			var pkg string
+			switch c.X.(type) {
+			case *ast.Ident:
+				pkg = nameFromIdent(c.X.(*ast.Ident))
+			case *ast.CallExpr: // TODO : Don't know why, no time for check
+				break
+			}
+
+			typ := nameFromIdent(c.Sel)
+			imprt, err := v.pkg.FindImport(pkg)
+			if err != nil {
+				// TODO : package currently is not capable of parsing build tags. so ignore this :/
+				break
+			}
+			pkgDef, err := ParsePackage(imprt.path)
+			if err != nil {
+				return err
+			}
+			var t Definition
+			fn, err := pkgDef.FindFunction(typ)
+			if err == nil {
+				if len(fn.def.results) <= v.index {
+					return fmt.Errorf("%d result is available but want %d", len(fn.def.results), v.index)
+				}
+				t = fn.def.results[v.index].def
+			} else {
+				t, err = checkTypeCast(pkgDef, builtin, v.caller.Args, typ)
+				if err != nil {
+					return err
+				}
+			}
+
+			foreignTyp := t
+			v.def = getForeignType(v.pkg, pkg, v.fl, foreignTyp)
+		}
+	}
+	return nil
+
 }
 
 func newVariableFromValue(p *Package, f *File, name string, index int, e []ast.Expr) *Variable {
