@@ -9,8 +9,6 @@ import (
 	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/executor"
 	"github.com/fzerorubigd/goql/internal/parse"
-	// runtime is the go type runtimes
-	_ "github.com/fzerorubigd/goql/internal/runtime"
 	"github.com/fzerorubigd/goql/structures"
 )
 
