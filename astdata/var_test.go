@@ -10,6 +10,8 @@ import (
 var testVar = `
 package example
 
+import "context"
+
 var (
     vi = 10
     vj = 100.0
@@ -18,12 +20,13 @@ var (
     vm = 'c'
     vn = Test()
     vo = make([]int,10)
+    vp = new([]int)
+    vq = context.Background()
 )
 
 func Test() int64 {
     return 10
 }
-
 `
 
 func TestVar(t *testing.T) {
@@ -54,5 +57,15 @@ func TestVarExtra(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "int64", v.Definition().String())
+
+	v, err = p.FindVariable("vp")
+	require.NoError(t, err)
+
+	assert.Equal(t, "*[]int", v.Definition().String())
+
+	v, err = p.FindVariable("vq")
+	require.NoError(t, err)
+
+	assert.Equal(t, "context.Context", v.Definition().String())
 
 }
