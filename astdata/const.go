@@ -4,6 +4,7 @@ package astdata
 
 import (
 	"go/ast"
+	"go/token"
 )
 
 // Constant is a string represent of a function parameter
@@ -11,13 +12,15 @@ type Constant struct {
 	pkg *Package
 	fl  *File
 
-	//v *ast.ValueSpec
-	//c *ast.CommentGroup
-
 	name string
 	docs Docs
 
 	value string
+
+	Type Definition
+
+	caller *ast.CallExpr
+	index  int
 }
 
 // Package return the constant package
@@ -45,6 +48,58 @@ func (c *Constant) Value() string {
 	return c.value
 }
 
+func constantFromValue(p *Package, f *File, name string, indx int, e []ast.Expr) *Constant {
+	var t Definition
+	var caller *ast.CallExpr
+	var ok bool
+	if len(e) == 0 {
+		return &Constant{
+			pkg:  p,
+			name: name,
+			fl:   f,
+		}
+	}
+	first := e[0]
+	if caller, ok = first.(*ast.CallExpr); !ok {
+		switch data := e[indx].(type) {
+		case *ast.BasicLit:
+			switch data.Kind {
+			case token.INT:
+				t = getBasicIdent("int")
+			case token.FLOAT:
+				t = getBasicIdent("float64")
+			case token.IMAG:
+				t = getBasicIdent("complex64")
+			case token.CHAR:
+				t = getBasicIdent("char")
+			case token.STRING:
+				t = getBasicIdent("string")
+				//default:
+				//fmt.Printf("var value => %T", e[index])
+				//fmt.Printf("%s", src[data.Pos()-1:data.End()-1])
+			}
+		case *ast.Ident:
+			t = getIdent(p, f, data)
+		}
+	}
+	return &Constant{
+		pkg:    p,
+		fl:     f,
+		name:   name,
+		Type:   t,
+		caller: caller,
+		index:  indx,
+	}
+}
+func constantFromExpr(p *Package, f *File, name string, e ast.Expr) *Constant {
+	return &Constant{
+		pkg:  p,
+		name: name,
+		Type: newType(p, f, e),
+		fl:   f,
+	}
+}
+
 func getConstantValue(a []ast.Expr, lastVal string) string {
 	if len(a) == 0 {
 		return lastVal
@@ -62,11 +117,15 @@ func getConstantValue(a []ast.Expr, lastVal string) string {
 func newConstant(p *Package, f *File, v *ast.ValueSpec, c *ast.CommentGroup, last *Constant) []*Constant {
 	var res []*Constant
 	for i := range v.Names {
-		n := Constant{
-			pkg: p,
-			fl:  f,
-		}
+		var n = &Constant{}
 		name := nameFromIdent(v.Names[i])
+
+		if v.Type != nil {
+			n = constantFromExpr(p, f, name, v.Type)
+		} else {
+			n = constantFromValue(p, f, name, i, v.Values)
+		}
+
 		l := ""
 		if last != nil {
 			l = last.Value()
@@ -74,8 +133,10 @@ func newConstant(p *Package, f *File, v *ast.ValueSpec, c *ast.CommentGroup, las
 		n.value = getConstantValue(v.Values, l)
 		n.name = name
 		n.docs = docsFromNodeDoc(c, v.Doc)
-		last = &n
-		res = append(res, &n)
+		n.fl = f
+		n.pkg = p
+		last = n
+		res = append(res, n)
 	}
 
 	return res

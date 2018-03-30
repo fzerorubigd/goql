@@ -14,6 +14,8 @@ type Type struct {
 
 	docs Docs
 	name string
+
+	def Definition
 }
 
 // Docs return the documents
@@ -36,6 +38,11 @@ func (t *Type) File() *File {
 	return t.file
 }
 
+// Definition return the definition of this type
+func (t *Type) Definition() Definition {
+	return t.def
+}
+
 // newTypeName handle a type with name
 func newTypeName(p *Package, f *File, t *ast.TypeSpec, c *ast.CommentGroup) *Type {
 	return &Type{
@@ -46,6 +53,7 @@ func newTypeName(p *Package, f *File, t *ast.TypeSpec, c *ast.CommentGroup) *Typ
 
 		name: nameFromIdent(t.Name),
 		docs: docsFromNodeDoc(c, t.Doc),
+		def:  newType(p, f, t.Type),
 	}
 
 }

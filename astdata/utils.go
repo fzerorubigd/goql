@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	cache = make(map[string]*Package)
-	lock  = sync.RWMutex{}
+	cache       = make(map[string]*Package)
+	builtinType map[string]bool
+	lock        = sync.RWMutex{}
+	builtin     *Package
 )
 
 func translateToFullPath(path string, packages ...string) (string, error) {
@@ -92,6 +94,22 @@ func setCache(folder string, p *Package) {
 	cache[folder] = p
 }
 
+func checkTypeCast(p *Package, bi *Package, args []ast.Expr, name string) (Definition, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("it can not be a typecast : %s", name)
+	}
+
+	// if the type is in this package, then simply pass an ident type
+	// not the actual type, since the actual type is the definition of
+	// the type
+	_, err := p.FindType(name)
+	if err == nil {
+		return &IdentType{pkg: p, ident: name}, nil
+	}
+
+	return nil, fmt.Errorf("can not find the call for %s", name)
+}
+
 func getCache(folder string) *Package {
 	lock.RLock()
 	defer lock.RUnlock()
@@ -104,4 +122,30 @@ func nameFromIdent(i *ast.Ident) (name string) {
 		name = i.String()
 	}
 	return
+}
+
+func getBuiltin() *Package {
+	if builtin == nil {
+		var err error
+		builtin, err = ParsePackage("builtin")
+		if err != nil {
+			panic(err)
+		}
+	}
+	return builtin
+}
+
+func isBuiltinIdent(ident string) bool {
+	if builtinType == nil {
+		builtinType = make(map[string]bool)
+		b := getBuiltin()
+		for f := range b.files {
+			for t := range b.files[f].types {
+				builtinType[b.files[f].types[t].name] = true
+			}
+		}
+	}
+
+	return builtinType[ident]
+
 }
