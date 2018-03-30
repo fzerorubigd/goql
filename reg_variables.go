@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 )
 
 type variableProvider struct {
@@ -30,17 +29,17 @@ func (v *variableProvider) Provide(in interface{}) []interface{} {
 }
 
 func registerVariable() {
-	structures.RegisterTable("vars", &variableProvider{
+	RegisterTable("vars", &variableProvider{
 		cache: make(map[string][]interface{}),
 		lock:  &sync.Mutex{},
 	})
 
-	structures.RegisterField("vars", "name", genericName{})
-	structures.RegisterField("vars", "pkg_name", genericPackageName{})
-	structures.RegisterField("vars", "pkg_path", genericPackagePath{})
-	structures.RegisterField("vars", "file", genericFileName{})
-	structures.RegisterField("vars", "exported", genericIsExported{})
-	structures.RegisterField("vars", "docs", genericDoc{})
+	RegisterField("vars", "name", genericName{})
+	RegisterField("vars", "pkg_name", genericPackageName{})
+	RegisterField("vars", "pkg_path", genericPackagePath{})
+	RegisterField("vars", "file", genericFileName{})
+	RegisterField("vars", "exported", genericIsExported{})
+	RegisterField("vars", "docs", genericDoc{})
 }
 
 func init() {

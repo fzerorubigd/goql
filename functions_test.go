@@ -1,4 +1,4 @@
-package structures
+package goql
 
 import (
 	"fmt"
@@ -28,21 +28,21 @@ func (f *fn) Execute(v ...Valuer) (Valuer, error) {
 
 func TestRegister(t *testing.T) {
 	concat := &fn{}
-	assert.NotPanics(t, func() { RegisterFunction("concat", concat) })
-	assert.Panics(t, func() { RegisterFunction("concat", concat) })
-	assert.True(t, HasFunction("concat"))
-	assert.False(t, HasFunction("invalid-func"))
+	assert.NotPanics(t, func() { RegisterFunction("fnconcat", concat) })
+	assert.Panics(t, func() { RegisterFunction("fnconcat", concat) })
+	assert.True(t, hasFunction("fnconcat"))
+	assert.False(t, hasFunction("invalid-func"))
 
-	res, err := ExecuteFunction("concat", String{}, Bool{})
+	res, err := executeFunction("fnconcat", String{}, Bool{})
 	assert.Error(t, err)
 	assert.Nil(t, res)
 
-	res, err = ExecuteFunction("concat", String{String: "Hello"}, String{String: "World"})
+	res, err = executeFunction("fnconcat", String{String: "Hello"}, String{String: "World"})
 	assert.NoError(t, err)
 	assert.IsType(t, String{}, res)
 	assert.Equal(t, "HelloWorld", res.Value().(string))
 
-	res, err = ExecuteFunction("notexists")
+	res, err = executeFunction("notexists")
 	assert.Error(t, err)
 	assert.Nil(t, res)
 }

@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 )
 
 type functionProvider struct {
@@ -31,46 +30,46 @@ func (f *functionProvider) Provide(in interface{}) []interface{} {
 
 type isMethodColumn struct{}
 
-func (isMethodColumn) Value(in interface{}) structures.String {
+func (isMethodColumn) Value(in interface{}) String {
 	fn := in.(*astdata.Function)
 	if fn.ReceiverType() == "" {
-		return structures.String{Null: true}
+		return String{Null: true}
 	}
-	return structures.String{String: fn.ReceiverType()}
+	return String{String: fn.ReceiverType()}
 }
 
 type isPointerMethod struct{}
 
-func (isPointerMethod) Value(in interface{}) structures.Bool {
+func (isPointerMethod) Value(in interface{}) Bool {
 	fn := in.(*astdata.Function)
 	if fn.ReceiverType() == "" {
-		return structures.Bool{Null: true}
+		return Bool{Null: true}
 	}
-	return structures.Bool{Bool: fn.RecieverPointer()}
+	return Bool{Bool: fn.RecieverPointer()}
 }
 
 type bodyCol struct{}
 
-func (bodyCol) Value(in interface{}) structures.String {
+func (bodyCol) Value(in interface{}) String {
 	fn := in.(*astdata.Function)
-	return structures.String{String: fn.Body()}
+	return String{String: fn.Body()}
 }
 
 func registerFunc() {
-	structures.RegisterTable("funcs", &functionProvider{
+	RegisterTable("funcs", &functionProvider{
 		cache: make(map[string][]interface{}),
 		lock:  &sync.Mutex{},
 	})
 
-	structures.RegisterField("funcs", "name", genericName{})
-	structures.RegisterField("funcs", "pkg_name", genericPackageName{})
-	structures.RegisterField("funcs", "pkg_path", genericPackagePath{})
-	structures.RegisterField("funcs", "file", genericFileName{})
-	structures.RegisterField("funcs", "receiver", isMethodColumn{})
-	structures.RegisterField("funcs", "pointer_receiver", isPointerMethod{})
-	structures.RegisterField("funcs", "exported", genericIsExported{})
-	structures.RegisterField("funcs", "docs", genericDoc{})
-	structures.RegisterField("funcs", "body", bodyCol{})
+	RegisterField("funcs", "name", genericName{})
+	RegisterField("funcs", "pkg_name", genericPackageName{})
+	RegisterField("funcs", "pkg_path", genericPackagePath{})
+	RegisterField("funcs", "file", genericFileName{})
+	RegisterField("funcs", "receiver", isMethodColumn{})
+	RegisterField("funcs", "pointer_receiver", isPointerMethod{})
+	RegisterField("funcs", "exported", genericIsExported{})
+	RegisterField("funcs", "docs", genericDoc{})
+	RegisterField("funcs", "body", bodyCol{})
 }
 
 func init() {

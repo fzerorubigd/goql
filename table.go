@@ -1,4 +1,4 @@
-package structures
+package goql
 
 import (
 	"fmt"
@@ -6,10 +6,10 @@ import (
 	"sync"
 )
 
-// ValueType is the value type of query
+// ValueType is an enum contain supported value type in system
 type ValueType int
 
-// String is the string type in our system
+// String is the string type, like function name, file name and ...
 type String struct {
 	String string
 	Null   bool
@@ -24,7 +24,7 @@ func (s String) Value() interface{} {
 	return s.String
 }
 
-// Number is the number
+// Number is the number, only float64 is supported
 type Number struct {
 	Number float64
 	Null   bool
@@ -68,7 +68,7 @@ var (
 	lock   = &sync.Mutex{}
 )
 
-// Valuer is a helper only for result type
+// Valuer is replacement to prevent using the interface{} it is used when the value is required
 type Valuer interface {
 	Value() interface{}
 }
@@ -78,7 +78,7 @@ type StringValuer interface {
 	Value(interface{}) String
 }
 
-// NumberValuer is the integer valuer
+// NumberValuer is the number valuer (float64 is supported only )
 type NumberValuer interface {
 	Value(interface{}) Number
 }
@@ -88,20 +88,20 @@ type BoolValuer interface {
 	Value(interface{}) Bool
 }
 
-// ColumnDef is the helper for column definition
-type ColumnDef struct {
+// columnDef is the helper for column definition
+type columnDef struct {
 	name  string
 	typ   interface{}
 	order int
 }
 
 // Order return order of registration
-func (c ColumnDef) Order() int {
+func (c columnDef) Order() int {
 	return c.order
 }
 
 // Type return the type of value of column
-func (c ColumnDef) Type() ValueType {
+func (c columnDef) Type() ValueType {
 	switch c.typ.(type) {
 	case StringValuer:
 		return ValueTypeString
@@ -114,20 +114,24 @@ func (c ColumnDef) Type() ValueType {
 	}
 }
 
-// Table is the single table in system
+// table is the single table in system
 type table struct {
 	name   string
-	fields map[string]ColumnDef // interface is one of the Valuer interface and not anything else
+	fields map[string]columnDef // interface is one of the Valuer interface and not anything else
 	data   Table
 	lock   *sync.Mutex
 }
 
-// Table is a callback to get table data from a package
+// Table is a interface for registration of a data
 type Table interface {
+	// the function argument is the object used as database. in our case it is the astdata.Package and the result
+	// must be an array of items. items are depends on the table. for example on funcs table, the result
+	// is a slice of astdata.Functions
 	Provide(interface{}) []interface{}
 }
 
-// RegisterTable is the function to handle registration of a table
+// RegisterTable is the function to handle registration of a table, the name must be unique, and duplicate registration
+// panics
 func RegisterTable(name string, data Table) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -138,13 +142,13 @@ func RegisterTable(name string, data Table) {
 	tables[name] = &table{
 		name:   name,
 		data:   data,
-		fields: make(map[string]ColumnDef),
+		fields: make(map[string]columnDef),
 		lock:   &sync.Mutex{},
 	}
 }
 
-// GetTable return the table definition
-func GetTable(t string) (map[string]ColumnDef, error) {
+// getTable return the table definition
+func getTable(t string) (map[string]columnDef, error) {
 	tbl, ok := tables[t]
 	if !ok {
 		return nil, fmt.Errorf("table %s is not available", t)
@@ -153,7 +157,8 @@ func GetTable(t string) (map[string]ColumnDef, error) {
 	return tbl.fields, nil
 }
 
-// RegisterField is the field registration
+// RegisterField is the field registration for a table, table must registered before and the name must be unique in that table
+// the value is one of the String/Bool/NumberValuer in any other case, it panics
 func RegisterField(t string, name string, valuer interface{}) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -181,16 +186,16 @@ func RegisterField(t string, name string, valuer interface{}) {
 		panic(fmt.Sprintf("valuer is not a valid valuer, its is %T", valuer))
 	}
 
-	tbl.fields[name] = ColumnDef{
+	tbl.fields[name] = columnDef{
 		typ:   valuer,
 		name:  name,
 		order: max,
 	}
 }
 
-// GetFields is the get field for a table, empty field name is ignored, so the caller could fill
+// getTableFields is the get field for a table, empty field name is ignored, so the caller could fill
 // calculated item
-func GetFields(p interface{}, t string, res chan<- []Valuer, fields ...string) error {
+func getTableFields(p interface{}, t string, res chan<- []Valuer, fields ...string) error {
 	lock.Lock()
 	defer lock.Unlock()
 	tbl, ok := tables[t]

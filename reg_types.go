@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 )
 
 type typeProvider struct {
@@ -30,17 +29,17 @@ func (t *typeProvider) Provide(in interface{}) []interface{} {
 }
 
 func registerTypes() {
-	structures.RegisterTable("types", &typeProvider{
+	RegisterTable("types", &typeProvider{
 		cache: make(map[string][]interface{}),
 		lock:  &sync.Mutex{},
 	})
 
-	structures.RegisterField("types", "name", genericName{})
-	structures.RegisterField("types", "pkg_name", genericPackageName{})
-	structures.RegisterField("types", "pkg_path", genericPackagePath{})
-	structures.RegisterField("types", "file", genericFileName{})
-	structures.RegisterField("types", "exported", genericIsExported{})
-	structures.RegisterField("types", "docs", genericDoc{})
+	RegisterField("types", "name", genericName{})
+	RegisterField("types", "pkg_name", genericPackageName{})
+	RegisterField("types", "pkg_path", genericPackagePath{})
+	RegisterField("types", "file", genericFileName{})
+	RegisterField("types", "exported", genericIsExported{})
+	RegisterField("types", "docs", genericDoc{})
 }
 
 func init() {

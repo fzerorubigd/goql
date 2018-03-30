@@ -1,15 +1,15 @@
-package executor
+package goql
 
 import (
 	"strings"
 
-	"github.com/fzerorubigd/goql/internal/parse"
-	"github.com/fzerorubigd/goql/structures"
+	"github.com/fzerorubigd/goql/parse"
 )
 
+// sortMe is a type to order data based on order sql statement.
 type sortMe struct {
 	order parse.Orders
-	data  [][]structures.Valuer
+	data  [][]Valuer
 }
 
 func (s *sortMe) Len() int {

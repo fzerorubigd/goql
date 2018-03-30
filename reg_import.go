@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 )
 
 type importProvider struct {
@@ -31,41 +30,41 @@ func (v *importProvider) Provide(in interface{}) []interface{} {
 
 type canonicalCol struct{}
 
-func (canonicalCol) Value(in interface{}) structures.String {
+func (canonicalCol) Value(in interface{}) String {
 	im := in.(*astdata.Import)
 	if im.Canonical() == "" {
-		return structures.String{Null: true}
+		return String{Null: true}
 	}
-	return structures.String{String: im.Canonical()}
+	return String{String: im.Canonical()}
 }
 
 type pathCol struct{}
 
-func (pathCol) Value(in interface{}) structures.String {
+func (pathCol) Value(in interface{}) String {
 	im := in.(*astdata.Import)
-	return structures.String{String: im.Path()}
+	return String{String: im.Path()}
 }
 
 type packageCol struct{}
 
-func (packageCol) Value(in interface{}) structures.String {
+func (packageCol) Value(in interface{}) String {
 	im := in.(*astdata.Import)
-	return structures.String{String: im.TargetPackage()}
+	return String{String: im.TargetPackage()}
 }
 
 func registerImport() {
-	structures.RegisterTable("imports", &importProvider{
+	RegisterTable("imports", &importProvider{
 		cache: make(map[string][]interface{}),
 		lock:  &sync.Mutex{},
 	})
 
-	structures.RegisterField("imports", "pkg_name", genericPackageName{})
-	structures.RegisterField("imports", "pkg_path", genericPackagePath{})
-	structures.RegisterField("imports", "file", genericFileName{})
-	structures.RegisterField("imports", "docs", genericDoc{})
-	structures.RegisterField("imports", "canonical", canonicalCol{})
-	structures.RegisterField("imports", "path", pathCol{})
-	structures.RegisterField("imports", "package", packageCol{})
+	RegisterField("imports", "pkg_name", genericPackageName{})
+	RegisterField("imports", "pkg_path", genericPackagePath{})
+	RegisterField("imports", "file", genericFileName{})
+	RegisterField("imports", "docs", genericDoc{})
+	RegisterField("imports", "canonical", canonicalCol{})
+	RegisterField("imports", "path", pathCol{})
+	RegisterField("imports", "package", packageCol{})
 }
 
 func init() {

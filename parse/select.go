@@ -1,5 +1,7 @@
 package parse
 
+// this file contain logic to handle select query. the where part is usable in UPDATE and DELETE query
+
 import (
 	"fmt"
 	"strconv"

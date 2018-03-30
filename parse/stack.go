@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// Stack is very silly implementation of stack
+// Stack is very silly implementation of stack, just for simplify things in where part
 type Stack interface {
 	Pop() (Item, error)
 	Push(...Item)

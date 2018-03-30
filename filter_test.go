@@ -1,27 +1,26 @@
-package executor
+package goql
 
 import (
 	"testing"
 
-	"github.com/fzerorubigd/goql/internal/parse"
-	"github.com/fzerorubigd/goql/structures"
+	"github.com/fzerorubigd/goql/parse"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	rowTest = []structures.Valuer{
-		structures.Number{Number: 1},
-		structures.Bool{Bool: true},
-		structures.String{String: "a"},
-		structures.Number{Null: true},
-		structures.Bool{Null: true},
-		structures.String{Null: true},
+	rowTest = []Valuer{
+		Number{Number: 1},
+		Bool{Bool: true},
+		String{String: "a"},
+		Number{Null: true},
+		Bool{Null: true},
+		String{Null: true},
 		unknown{},
 	}
 )
 
 func newGetter(in interface{}) getter {
-	return func([]structures.Valuer) interface{} {
+	return func([]Valuer) interface{} {
 		return in
 	}
 }
