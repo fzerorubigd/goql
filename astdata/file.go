@@ -10,6 +10,7 @@ import (
 // File is a single file in a structure
 type File struct {
 	fileName    string
+	src         string
 	packageName string
 	pkg         *Package
 
@@ -19,6 +20,11 @@ type File struct {
 	functions []*Function
 	constants []*Constant
 	types     []*Type
+}
+
+// Source return the file source
+func (f *File) Source() string {
+	return f.src
 }
 
 type walker struct {
@@ -85,6 +91,11 @@ func (f *File) FileName() string {
 	return filepath.Base(f.fileName)
 }
 
+// FullPath return the file full path
+func (f *File) FullPath() string {
+	return f.fileName
+}
+
 // Docs return the documents of the file
 func (f *File) Docs() Docs {
 	return f.docs
@@ -106,5 +117,6 @@ func ParseFile(src string, p *Package) (*File, error) {
 
 	ast.Walk(fw, f)
 	fw.File.pkg = p
+	fw.File.src = src
 	return fw.File, nil
 }

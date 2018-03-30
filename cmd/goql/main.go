@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	_ "github.com/fzerorubigd/goql"
+	"github.com/fzerorubigd/goql/plugin/goqlimport"
 	"github.com/ogier/pflag"
 	"github.com/olekukonko/tablewriter"
 )
@@ -15,6 +16,7 @@ import (
 var (
 	pkg    = pflag.StringP("package", "p", "net/http", "the package to query against")
 	format = pflag.StringP("format", "f", "table", "format of output, json and table ")
+	imprt  = pflag.BoolP("go-import", "i", true, "add goimports field to file table? its slower than other fields")
 )
 
 func tableWriter(row []string, data [][]string) {
@@ -43,6 +45,9 @@ func jsonWriter(row []string, data [][]string) {
 
 func main() {
 	pflag.Parse()
+	if *imprt {
+		goqlimport.Register()
+	}
 
 	query := strings.Join(pflag.Args(), " ")
 	c, err := sql.Open("goql", *pkg)
