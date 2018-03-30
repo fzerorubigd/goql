@@ -1,12 +1,11 @@
-package executor
+package goql
 
 import (
 	"fmt"
 	"sort"
 	"strconv"
 
-	"github.com/fzerorubigd/goql/internal/parse"
-	"github.com/fzerorubigd/goql/structures"
+	"github.com/fzerorubigd/goql/parse"
 )
 
 type fieldType int
@@ -37,7 +36,7 @@ type context struct {
 	q   *parse.Query
 
 	table      string
-	definition map[string]structures.ColumnDef
+	definition map[string]columnDef
 	flds       []field
 	selected   map[string]int
 
@@ -81,8 +80,8 @@ func newItem(t parse.ItemType, v string, p int) parse.Item {
 	}
 }
 
-// Execute the query
-func Execute(c interface{}, src *parse.Query) ([]string, [][]structures.Valuer, error) {
+// execute the query
+func execute(c interface{}, src *parse.Query) ([]string, [][]Valuer, error) {
 	var err error
 	ctx := &context{pkg: c, q: src}
 
@@ -176,7 +175,7 @@ func getFieldStar(ctx *context) []field {
 
 func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) {
 	assertType(fl.Item, parse.ItemFunc)
-	if !structures.HasFunction(fl.Item.Value()) {
+	if !hasFunction(fl.Item.Value()) {
 		return nil, fmt.Errorf("function '%s' is not registered", fl.Item.Value())
 	}
 	f := []field{
@@ -280,7 +279,7 @@ func getWhereField(ctx *context) (parse.Stack, []field, error) {
 
 func selectColumn(ctx *context) error {
 	ss := ctx.q.Statement.(*parse.SelectStmt)
-	tbl, err := structures.GetTable(ss.Table)
+	tbl, err := getTable(ss.Table)
 	if err != nil {
 		return err
 	}
@@ -318,9 +317,9 @@ func selectColumn(ctx *context) error {
 	return nil
 }
 
-func filterColumn(ctx *context, items ...structures.Valuer) []structures.Valuer {
+func filterColumn(ctx *context, items ...Valuer) []Valuer {
 	fl := ctx.flds
-	res := make([]structures.Valuer, 0, len(items))
+	res := make([]Valuer, 0, len(items))
 	for i := range fl {
 		if fl[i].show {
 			res = append(res, items[i])
@@ -330,32 +329,32 @@ func filterColumn(ctx *context, items ...structures.Valuer) []structures.Valuer 
 	return res
 }
 
-func fillGaps(ctx *context, res []structures.Valuer) error {
+func fillGaps(ctx *context, res []Valuer) error {
 	fl := ctx.flds
 	for i := range fl {
 		switch fl[i].typ {
 		case fieldTypeCopy:
 			res[i] = res[fl[i].copy]
 		case fieldTypeStaticNumber:
-			res[i] = structures.Number{Number: fl[i].staticNum}
+			res[i] = Number{Number: fl[i].staticNum}
 		case fieldTypeStaticString:
-			res[i] = structures.String{String: fl[i].staticStr}
+			res[i] = String{String: fl[i].staticStr}
 		case fieldTypeStaticBool:
-			res[i] = structures.Bool{Bool: fl[i].staticBool}
+			res[i] = Bool{Bool: fl[i].staticBool}
 		}
 	}
 
 	var err error
 	// once more for functions :/ if there is a way to fill it in one loop :/
-	// TODO : exec this at the GetFields not after that
+	// TODO : exec this at the getTableFields not after that
 	for i := range fl {
 		if fl[i].typ == fieldTypeFunction {
-			args := make([]structures.Valuer, len(fl[i].argsOrder))
+			args := make([]Valuer, len(fl[i].argsOrder))
 			for j := range fl[i].argsOrder {
 				args[j] = res[fl[i].argsOrder[j]]
 			}
 
-			res[i], err = structures.ExecuteFunction(fl[i].name, args...)
+			res[i], err = executeFunction(fl[i].name, args...)
 			if err != nil {
 				return err
 			}
@@ -365,7 +364,7 @@ func fillGaps(ctx *context, res []structures.Valuer) error {
 	return nil
 }
 
-func callWhere(where getter, i []structures.Valuer) (ok bool, err error) {
+func callWhere(where getter, i []Valuer) (ok bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("error : %v", e)
@@ -375,8 +374,8 @@ func callWhere(where getter, i []structures.Valuer) (ok bool, err error) {
 	return toBool(where(i)), nil
 }
 
-func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
-	res := make(chan []structures.Valuer, 3)
+func doQuery(ctx *context) ([]string, [][]Valuer, error) {
+	res := make(chan []Valuer, 3)
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 	var all = make([]string, len(ctx.flds))
 	for i := range ctx.flds {
@@ -386,7 +385,7 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 		}
 	}
 
-	err := structures.GetFields(ctx.pkg, ss.Table, res, all...)
+	err := getTableFields(ctx.pkg, ss.Table, res, all...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -394,7 +393,7 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	a := make([][]structures.Valuer, 0)
+	a := make([][]Valuer, 0)
 	for i := range res {
 		if err = fillGaps(ctx, i); err != nil {
 			close(res) // prevent the channel leak. TODO : better way
@@ -429,7 +428,7 @@ func doQuery(ctx *context) ([]string, [][]structures.Valuer, error) {
 	if ss.Count >= 0 && ss.Start >= 0 {
 		l := len(a)
 		if ss.Start >= l {
-			a = [][]structures.Valuer{}
+			a = [][]Valuer{}
 		} else if ss.Start+ss.Count >= l {
 			a = a[ss.Start:] // to the end
 		} else {

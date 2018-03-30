@@ -30,7 +30,7 @@ func (p *parser) reject() {
 	p.rejected = true
 }
 
-// AST return the abstract source tree for given query
+// AST return the abstract source tree for given query, currently only select is supported
 func AST(q string) (*Query, error) {
 	p := &parser{
 		l: lex(q),

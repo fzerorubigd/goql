@@ -1,12 +1,15 @@
-package structures
+package goql
 
 import (
 	"fmt"
 	"sync"
 )
 
-// Function is the functions in the system
+// Function is the functions in the system, it should check for arguments count and return error on
+// wrong arguments count, but for type, it should try to cast
+// TODO : check for function arguments on prepare
 type Function interface {
+	// Execute is called on each row
 	Execute(...Valuer) (Valuer, error)
 }
 
@@ -15,7 +18,7 @@ var (
 	fnLock    = &sync.RWMutex{}
 )
 
-// RegisterFunction is entry point for registering a function into system
+// RegisterFunction is entry point for registering a function into system, the name must be unique
 func RegisterFunction(name string, fn Function) {
 	fnLock.Lock()
 	defer fnLock.Unlock()
@@ -27,8 +30,8 @@ func RegisterFunction(name string, fn Function) {
 	functions[name] = fn
 }
 
-// HasFunction return if the function is available
-func HasFunction(name string) bool {
+// hasFunction return if the function is available
+func hasFunction(name string) bool {
 	fnLock.RLock()
 	defer fnLock.RUnlock()
 
@@ -36,8 +39,8 @@ func HasFunction(name string) bool {
 	return ok
 }
 
-// ExecuteFunction is a helper to execute function by its name
-func ExecuteFunction(name string, value ...Valuer) (Valuer, error) {
+// executeFunction is a helper to execute function by its name
+func executeFunction(name string, value ...Valuer) (Valuer, error) {
 	fnLock.RLock()
 	defer fnLock.RUnlock()
 

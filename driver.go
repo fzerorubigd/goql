@@ -7,11 +7,7 @@ import (
 	"io"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/executor"
-	"github.com/fzerorubigd/goql/internal/parse"
-	// runtime is the go type runtimes
-	_ "github.com/fzerorubigd/goql/internal/runtime"
-	"github.com/fzerorubigd/goql/structures"
+	"github.com/fzerorubigd/goql/parse"
 )
 
 type driver struct{}
@@ -26,10 +22,10 @@ type stmt struct {
 	executed bool
 }
 
-type row struct {
+type rows struct {
 	cursor int
 	rows   []string
-	data   [][]structures.Valuer
+	data   [][]Valuer
 }
 
 func (driver) Open(name string) (drv.Conn, error) {
@@ -71,8 +67,8 @@ func (gs *stmt) Exec(args []drv.Value) (drv.Result, error) {
 
 func (gs *stmt) Query(args []drv.Value) (drv.Rows, error) {
 	var err error
-	r := &row{}
-	r.rows, r.data, err = executor.Execute(gs.pkg, gs.query)
+	r := &rows{}
+	r.rows, r.data, err = execute(gs.pkg, gs.query)
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +76,17 @@ func (gs *stmt) Query(args []drv.Value) (drv.Rows, error) {
 	return r, nil
 }
 
-func (r *row) Columns() []string {
+func (r *rows) Columns() []string {
 	return r.rows
 }
 
-func (r *row) Close() error {
+func (r *rows) Close() error {
 	r.data = nil
 	r.rows = nil
 	return nil
 }
 
-func (r *row) Next(dest []drv.Value) error {
+func (r *rows) Next(dest []drv.Value) error {
 	if r.cursor >= len(r.data) {
 		return io.EOF
 	}

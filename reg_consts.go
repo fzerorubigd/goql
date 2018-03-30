@@ -1,10 +1,9 @@
-package runtime
+package goql
 
 import (
 	"sync"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 )
 
 type constProvider struct {
@@ -30,17 +29,17 @@ func (v *constProvider) Provide(in interface{}) []interface{} {
 }
 
 func registerConstant() {
-	structures.RegisterTable("consts", &constProvider{
+	RegisterTable("consts", &constProvider{
 		cache: make(map[string][]interface{}),
 		lock:  &sync.Mutex{},
 	})
 
-	structures.RegisterField("consts", "name", genericName{})
-	structures.RegisterField("consts", "pkg_name", genericPackageName{})
-	structures.RegisterField("consts", "pkg_path", genericPackagePath{})
-	structures.RegisterField("consts", "file", genericFileName{})
-	structures.RegisterField("consts", "exported", genericIsExported{})
-	structures.RegisterField("consts", "docs", genericDoc{})
+	RegisterField("consts", "name", genericName{})
+	RegisterField("consts", "pkg_name", genericPackageName{})
+	RegisterField("consts", "pkg_path", genericPackagePath{})
+	RegisterField("consts", "file", genericFileName{})
+	RegisterField("consts", "exported", genericIsExported{})
+	RegisterField("consts", "docs", genericDoc{})
 }
 
 func init() {

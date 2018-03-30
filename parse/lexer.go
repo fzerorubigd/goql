@@ -1,4 +1,3 @@
-// Package parse is the lexer/parser based on net/template parser
 package parse
 
 import (
@@ -10,7 +9,7 @@ import (
 
 type stateFn func(*lexer) stateFn
 
-// ItemType is each lexeme type
+// ItemType is each lexeme type, also error and eof. any new keyword should be here first
 type ItemType int
 
 const (
@@ -93,6 +92,7 @@ const (
 )
 
 var (
+	// alphaItem which are an keyword, all lower case
 	keywords = map[string]ItemType{
 		"select": ItemSelect,
 		"from":   ItemFrom,
@@ -113,7 +113,7 @@ var (
 	}
 )
 
-// Item is an interface to handle the item
+// Item is an interface to handle the item, any item in the query
 type Item interface {
 	fmt.Stringer
 	Type() ItemType
@@ -192,22 +192,6 @@ func (l *lexer) emit(t ItemType) {
 	// Some items contain text internally. If so, count their newlines.
 	l.start = l.pos
 }
-
-/*
-// ignore skips over the pending input before this point.
-func (l *lexer) ignore() {
-	l.start = l.pos
-}
-
-// accept consumes the next rune if it's from the valid set.
-func (l *lexer) accept(valid string) bool {
-	if strings.ContainsRune(valid, l.next()) {
-		return true
-	}
-	l.backup()
-	return false
-}
-*/
 
 // acceptRun consumes a run of runes from the valid set.
 func (l *lexer) acceptRun(valid string) {

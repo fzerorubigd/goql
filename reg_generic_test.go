@@ -1,11 +1,10 @@
-package runtime
+package goql
 
 import (
 	"sync"
 	"testing"
 
 	"github.com/fzerorubigd/goql/astdata"
-	"github.com/fzerorubigd/goql/structures"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,49 +32,49 @@ func (a aller) File() *astdata.File {
 }
 
 func TestGeneric(t *testing.T) {
-	assert.Equal(t, structures.String{String: "Test"}, genericName{}.Value(aller{name: "Test"}))
-	assert.Equal(t, structures.Bool{Bool: true}, genericIsExported{}.Value(aller{name: "Test"}))
-	assert.Equal(t, structures.Bool{Bool: false}, genericIsExported{}.Value(aller{name: "test"}))
-	assert.Equal(t, structures.String{String: "// Test\n// Line2"}, genericDoc{}.Value(aller{docs: astdata.Docs{"// Test", "// Line2"}}))
-	assert.Equal(t, structures.String{Null: true}, genericDoc{}.Value(aller{}))
+	assert.Equal(t, String{String: "Test"}, genericName{}.Value(aller{name: "Test"}))
+	assert.Equal(t, Bool{Bool: true}, genericIsExported{}.Value(aller{name: "Test"}))
+	assert.Equal(t, Bool{Bool: false}, genericIsExported{}.Value(aller{name: "test"}))
+	assert.Equal(t, String{String: "// Test\n// Line2"}, genericDoc{}.Value(aller{docs: astdata.Docs{"// Test", "// Line2"}}))
+	assert.Equal(t, String{Null: true}, genericDoc{}.Value(aller{}))
 
 	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{String: "fixture"}, genericPackageName{}.Value(aller{pkg: p}))
-	assert.Equal(t, structures.String{String: "github.com/fzerorubigd/fixture"}, genericPackagePath{}.Value(aller{pkg: p}))
+	assert.Equal(t, String{String: "fixture"}, genericPackageName{}.Value(aller{pkg: p}))
+	assert.Equal(t, String{String: "github.com/fzerorubigd/fixture"}, genericPackagePath{}.Value(aller{pkg: p}))
 
 	f := p.Files()[0]
 	flName := f.FileName()
-	assert.Equal(t, structures.String{String: flName}, genericFileName{}.Value(aller{fl: f}))
-	assert.Equal(t, structures.String{String: flName}, nameColumn{}.Value(f))
+	assert.Equal(t, String{String: flName}, genericFileName{}.Value(aller{fl: f}))
+	assert.Equal(t, String{String: flName}, nameColumn{}.Value(f))
 
 	fn, err := p.FindFunction("test")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{Null: true}, isMethodColumn{}.Value(fn))
-	assert.Equal(t, structures.Bool{Null: true}, isPointerMethod{}.Value(fn))
+	assert.Equal(t, String{Null: true}, isMethodColumn{}.Value(fn))
+	assert.Equal(t, Bool{Null: true}, isPointerMethod{}.Value(fn))
 
 	m1, err := p.FindMethod("beta", "assert")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{String: "beta"}, isMethodColumn{}.Value(m1))
-	assert.Equal(t, structures.Bool{Bool: false}, isPointerMethod{}.Value(m1))
+	assert.Equal(t, String{String: "beta"}, isMethodColumn{}.Value(m1))
+	assert.Equal(t, Bool{Bool: false}, isPointerMethod{}.Value(m1))
 
 	m2, err := p.FindMethod("alpha", "testing")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{String: "alpha"}, isMethodColumn{}.Value(m2))
-	assert.Equal(t, structures.Bool{Bool: true}, isPointerMethod{}.Value(m2))
-	assert.Equal(t, structures.String{String: "\n\tpanic(\"hi\")\n"}, bodyCol{}.Value(m2))
+	assert.Equal(t, String{String: "alpha"}, isMethodColumn{}.Value(m2))
+	assert.Equal(t, Bool{Bool: true}, isPointerMethod{}.Value(m2))
+	assert.Equal(t, String{String: "\n\tpanic(\"hi\")\n"}, bodyCol{}.Value(m2))
 
 	im1, err := p.FindImport("net/http")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{Null: true}, canonicalCol{}.Value(im1))
-	assert.Equal(t, structures.String{String: "net/http"}, pathCol{}.Value(im1))
-	assert.Equal(t, structures.String{String: "http"}, packageCol{}.Value(im1))
+	assert.Equal(t, String{Null: true}, canonicalCol{}.Value(im1))
+	assert.Equal(t, String{String: "net/http"}, pathCol{}.Value(im1))
+	assert.Equal(t, String{String: "http"}, packageCol{}.Value(im1))
 
 	im2, err := p.FindImport("context")
 	assert.NoError(t, err)
-	assert.Equal(t, structures.String{String: "ctx"}, canonicalCol{}.Value(im2))
-	assert.Equal(t, structures.String{String: "context"}, pathCol{}.Value(im2))
-	assert.Equal(t, structures.String{String: "context"}, packageCol{}.Value(im2))
+	assert.Equal(t, String{String: "ctx"}, canonicalCol{}.Value(im2))
+	assert.Equal(t, String{String: "context"}, pathCol{}.Value(im2))
+	assert.Equal(t, String{String: "context"}, packageCol{}.Value(im2))
 
 }
 

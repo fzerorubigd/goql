@@ -1,4 +1,4 @@
-package structures
+package goql
 
 import (
 	"fmt"
@@ -6,48 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-type tablet int
-
-type row int
-
-type c1 struct {
-}
-
-func (c c1) Value(in interface{}) Number {
-	r := in.(row)
-	return Number{Number: float64(r) * 2.0}
-}
-
-type c2 struct {
-}
-
-func (c c2) Value(in interface{}) String {
-	r := in.(row)
-	return String{String: fmt.Sprintf("%dth row", r)}
-}
-
-type c3 struct {
-}
-
-func (c c3) Value(in interface{}) Bool {
-	r := in.(row)
-	return Bool{Bool: r%2 == 0}
-}
-
-type provider struct {
-}
-
-func (provider) Provide(in interface{}) []interface{} {
-	tbl := in.(tablet)
-	ln := int(tbl) * 10
-	res := make([]interface{}, ln)
-	for i := 0; i < ln; i++ {
-		res[i] = row(i)
-	}
-
-	return res
-}
 
 type nilProvider struct {
 }
@@ -57,17 +15,17 @@ func (nilProvider) Provide(in interface{}) []interface{} {
 }
 
 func TestTables(t *testing.T) {
-	RegisterTable("test", provider{})
+	RegisterTable("test1", provider{})
 
-	RegisterField("test", "c1", c1{})
-	RegisterField("test", "c2", c2{})
-	RegisterField("test", "c3", c3{})
+	RegisterField("test1", "c1", c1{})
+	RegisterField("test1", "c2", c2{})
+	RegisterField("test1", "c3", c3{})
 
-	tt, err := GetTable("not-exists")
+	tt, err := getTable("not-exists")
 	assert.Error(t, err)
 	assert.Nil(t, tt)
 
-	tbl, err := GetTable("test")
+	tbl, err := getTable("test")
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(tbl))
 	assert.Equal(t, 0, tbl["c1"].Order())
@@ -80,7 +38,7 @@ func TestTables(t *testing.T) {
 
 	res := make(chan []Valuer, 3)
 
-	err = GetFields(tablet(1), "test", res, "c1", "c2", "c3")
+	err = getTableFields(tablet(1), "test1", res, "c1", "c2", "c3")
 	assert.NoError(t, err)
 
 	var cnt int64
@@ -94,7 +52,7 @@ func TestTables(t *testing.T) {
 
 	res = make(chan []Valuer, 3)
 
-	err = GetFields(tablet(1), "test", res, "c2", "c3")
+	err = getTableFields(tablet(1), "test1", res, "c2", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -106,7 +64,7 @@ func TestTables(t *testing.T) {
 	}
 
 	res = make(chan []Valuer, 3)
-	err = GetFields(tablet(1), "test", res, "c2", "", "c3")
+	err = getTableFields(tablet(1), "test1", res, "c2", "", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -118,14 +76,14 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	assert.Panics(t, func() { RegisterTable("test", nilProvider{}) })
+	assert.Panics(t, func() { RegisterTable("test1", nilProvider{}) })
 	assert.Panics(t, func() { RegisterField("not-exist", "test", c1{}) })
-	assert.Panics(t, func() { RegisterField("test", "c1", c1{}) })
-	assert.Panics(t, func() { RegisterField("test", "c11", 10) })
+	assert.Panics(t, func() { RegisterField("test1", "c1", c1{}) })
+	assert.Panics(t, func() { RegisterField("test1", "c11", 10) })
 
-	assert.Error(t, GetFields(1, "not-exist", res, "col"))
-	assert.Error(t, GetFields(1, "test", res, "col"))
-	assert.Error(t, GetFields(1, "test", res))
+	assert.Error(t, getTableFields(1, "not-exist", res, "col"))
+	assert.Error(t, getTableFields(1, "test1", res, "col"))
+	assert.Error(t, getTableFields(1, "test1", res))
 }
 
 func TestTypes(t *testing.T) {
@@ -150,7 +108,7 @@ func TestTypes(t *testing.T) {
 	s.Null = true
 	assert.Nil(t, s.Value())
 
-	cd := ColumnDef{
+	cd := columnDef{
 		typ: 10,
 	}
 	assert.Panics(t, func() { cd.Type() })

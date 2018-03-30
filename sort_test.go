@@ -1,11 +1,10 @@
-package executor
+package goql
 
 import (
 	"sort"
 	"testing"
 
-	"github.com/fzerorubigd/goql/internal/parse"
-	"github.com/fzerorubigd/goql/structures"
+	"github.com/fzerorubigd/goql/parse"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,50 +14,50 @@ func (u unknown) Value() interface{} {
 	return u // invalid type
 }
 
-var sortData = [][]structures.Valuer{
+var sortData = [][]Valuer{
 	{
-		structures.Number{Number: 0},
-		structures.Bool{Bool: true},
-		structures.String{String: "a"},
-		structures.Number{Number: 4},
-		structures.Number{Number: 4},
+		Number{Number: 0},
+		Bool{Bool: true},
+		String{String: "a"},
+		Number{Number: 4},
+		Number{Number: 4},
 		unknown{},
 	},
 	{
-		structures.Number{Number: 1},
-		structures.Bool{Bool: false},
-		structures.String{String: "b"},
-		structures.Number{Number: 3},
-		structures.Number{Null: true},
+		Number{Number: 1},
+		Bool{Bool: false},
+		String{String: "b"},
+		Number{Number: 3},
+		Number{Null: true},
 		unknown{},
 	},
 	{
-		structures.Number{Number: 2},
-		structures.Bool{Bool: true},
-		structures.String{String: "c"},
-		structures.Number{Number: 3},
-		structures.Number{Number: 3},
+		Number{Number: 2},
+		Bool{Bool: true},
+		String{String: "c"},
+		Number{Number: 3},
+		Number{Number: 3},
 		unknown{},
 	},
 	{
-		structures.Number{Number: 3},
-		structures.Bool{Bool: false},
-		structures.String{String: "d"},
-		structures.Number{Number: 1},
-		structures.Number{Null: true},
+		Number{Number: 3},
+		Bool{Bool: false},
+		String{String: "d"},
+		Number{Number: 1},
+		Number{Null: true},
 		unknown{},
 	},
 	{
-		structures.Number{Number: 4},
-		structures.Bool{Bool: true},
-		structures.String{String: "a"},
-		structures.Number{Number: 10},
-		structures.Number{Number: 5},
+		Number{Number: 4},
+		Bool{Bool: true},
+		String{String: "a"},
+		Number{Number: 10},
+		Number{Number: 5},
 		unknown{},
 	},
 }
 
-func order(in [][]structures.Valuer) []float64 {
+func order(in [][]Valuer) []float64 {
 	res := make([]float64, len(in))
 	for i := range in {
 		res[i] = in[i][0].Value().(float64)
