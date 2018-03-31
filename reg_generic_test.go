@@ -6,6 +6,7 @@ import (
 
 	"github.com/fzerorubigd/goql/astdata"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type aller struct {
@@ -39,7 +40,7 @@ func TestGeneric(t *testing.T) {
 	assert.Equal(t, String{Null: true}, genericDoc{}.Value(aller{}))
 
 	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, String{String: "fixture"}, genericPackageName{}.Value(aller{pkg: p}))
 	assert.Equal(t, String{String: "github.com/fzerorubigd/fixture"}, genericPackagePath{}.Value(aller{pkg: p}))
 
@@ -80,7 +81,7 @@ func TestGeneric(t *testing.T) {
 
 func TestProviders(t *testing.T) {
 	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	fn := &functionProvider{
 		cache: make(map[string][]interface{}),

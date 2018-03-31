@@ -15,7 +15,7 @@ import "github.com/fzerorubigd/fixture"
 
 func TestImport(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	f, err := p.FindImport("ctx")
 	assert.NoError(t, err)

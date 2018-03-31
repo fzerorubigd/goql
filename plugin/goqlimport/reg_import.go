@@ -4,7 +4,6 @@ package goqlimport
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/fzerorubigd/goql"
 	"github.com/fzerorubigd/goql/astdata"
@@ -22,8 +21,6 @@ func (ic importCheck) Value(in interface{}) goql.Bool {
 	dst, err := imports.Process(fl.FullPath(), src, ic.opt)
 	b := err == nil && bytes.Compare(src, dst) == 0
 
-	fmt.Println(src)
-	fmt.Println(dst)
 	return goql.Bool{
 		Bool: b,
 	}

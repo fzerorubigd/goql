@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDriver(t *testing.T) {
@@ -13,7 +14,7 @@ func TestDriver(t *testing.T) {
 	assert.Error(t, o.Ping()) // actual connection :)
 
 	c, err := sql.Open("goql", "github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer func() {
 		assert.NoError(t, c.Close())
 	}()
@@ -28,7 +29,7 @@ func TestDriver(t *testing.T) {
 	assert.Nil(t, ss)
 
 	ss, err = c.Prepare("select * from notable")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = ss.Query()
 	assert.Error(t, err)
 	assert.NoError(t, ss.Close())

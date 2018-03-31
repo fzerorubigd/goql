@@ -31,7 +31,7 @@ func Test() int64 {
 
 func TestVar(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	f, err := p.FindVariable("hi")
 	assert.NoError(t, err)

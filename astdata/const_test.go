@@ -32,7 +32,7 @@ const (
 
 func TestConst(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	c, err := p.FindConstant("X")
 	assert.NoError(t, err)

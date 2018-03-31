@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestType(t *testing.T) {
 	p, err := ParsePackage("github.com/fzerorubigd/fixture")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	f, err := p.FindType("alpha")
 	assert.NoError(t, err)
