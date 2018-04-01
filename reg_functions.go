@@ -70,6 +70,7 @@ func registerFunc() {
 	RegisterField("funcs", "exported", genericIsExported{})
 	RegisterField("funcs", "docs", genericDoc{})
 	RegisterField("funcs", "body", bodyCol{})
+	RegisterField("funcs", "def", genericDefinition{})
 }
 
 func init() {

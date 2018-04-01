@@ -17,7 +17,7 @@ type Constant struct {
 
 	value string
 
-	Type Definition
+	def Definition
 
 	caller *ast.CallExpr
 	index  int
@@ -46,6 +46,11 @@ func (c *Constant) Docs() Docs {
 // Value is the value of the constant (not very accurate , the iota is not supported)
 func (c *Constant) Value() string {
 	return c.value
+}
+
+// Definition return the constant definition
+func (c *Constant) Definition() Definition {
+	return c.def
 }
 
 func constantFromValue(p *Package, f *File, name string, indx int, e []ast.Expr) *Constant {
@@ -86,7 +91,7 @@ func constantFromValue(p *Package, f *File, name string, indx int, e []ast.Expr)
 		pkg:    p,
 		fl:     f,
 		name:   name,
-		Type:   t,
+		def:    t,
 		caller: caller,
 		index:  indx,
 	}
@@ -95,7 +100,7 @@ func constantFromExpr(p *Package, f *File, name string, e ast.Expr) *Constant {
 	return &Constant{
 		pkg:  p,
 		name: name,
-		Type: newType(p, f, e),
+		def:  newType(p, f, e),
 		fl:   f,
 	}
 }
@@ -116,6 +121,7 @@ func getConstantValue(a []ast.Expr, lastVal string) string {
 // newConstant return an array of constant in the scope
 func newConstant(p *Package, f *File, v *ast.ValueSpec, c *ast.CommentGroup, last *Constant) []*Constant {
 	var res []*Constant
+
 	for i := range v.Names {
 		var n = &Constant{}
 		name := nameFromIdent(v.Names[i])
