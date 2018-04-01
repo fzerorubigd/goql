@@ -10,7 +10,7 @@ import (
 // TODO : check for function arguments on prepare
 type Function interface {
 	// Execute is called on each row
-	Execute(...Valuer) (Valuer, error)
+	Execute(...Getter) (Getter, error)
 }
 
 var (
@@ -40,7 +40,7 @@ func hasFunction(name string) bool {
 }
 
 // executeFunction is a helper to execute function by its name
-func executeFunction(name string, value ...Valuer) (Valuer, error) {
+func executeFunction(name string, value ...Getter) (Getter, error) {
 	fnLock.RLock()
 	defer fnLock.RUnlock()
 

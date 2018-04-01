@@ -25,7 +25,7 @@ type stmt struct {
 type rows struct {
 	cursor int
 	rows   []string
-	data   [][]Valuer
+	data   [][]Getter
 }
 
 func (driver) Open(name string) (drv.Conn, error) {
@@ -92,7 +92,11 @@ func (r *rows) Next(dest []drv.Value) error {
 	}
 
 	for i := range dest {
-		dest[i] = r.data[r.cursor][i].Value()
+		in := r.data[r.cursor][i].Get()
+		if st, ok := in.(fmt.Stringer); ok {
+			in = st.String()
+		}
+		dest[i] = in
 	}
 	r.cursor++
 	return nil

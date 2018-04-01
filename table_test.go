@@ -36,7 +36,7 @@ func TestTables(t *testing.T) {
 	assert.Equal(t, ValueTypeString, tbl["c2"].Type())
 	assert.Equal(t, ValueTypeBool, tbl["c3"].Type())
 
-	res := make(chan []Valuer, 3)
+	res := make(chan []Getter, 3)
 
 	err = getTableFields(tablet(1), "test1", res, "c1", "c2", "c3")
 	assert.NoError(t, err)
@@ -50,7 +50,7 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	res = make(chan []Valuer, 3)
+	res = make(chan []Getter, 3)
 
 	err = getTableFields(tablet(1), "test1", res, "c2", "c3")
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	res = make(chan []Valuer, 3)
+	res = make(chan []Getter, 3)
 	err = getTableFields(tablet(1), "test1", res, "c2", "", "c3")
 	assert.NoError(t, err)
 
@@ -88,25 +88,25 @@ func TestTables(t *testing.T) {
 
 func TestTypes(t *testing.T) {
 	b := Bool{}
-	assert.Equal(t, false, b.Value())
+	assert.Equal(t, false, b.Get())
 	b.Bool = true
-	assert.Equal(t, true, b.Value())
+	assert.Equal(t, true, b.Get())
 	b.Null = true
-	assert.Nil(t, b.Value())
+	assert.Nil(t, b.Get())
 
 	n := Number{}
-	assert.Equal(t, 0.0, n.Value())
+	assert.Equal(t, 0.0, n.Get())
 	n.Number = 10.0
-	assert.Equal(t, 10.0, n.Value())
+	assert.Equal(t, 10.0, n.Get())
 	n.Null = true
-	assert.Nil(t, n.Value())
+	assert.Nil(t, n.Get())
 
 	s := String{}
-	assert.Equal(t, "", s.Value())
+	assert.Equal(t, "", s.Get())
 	s.String = "test"
-	assert.Equal(t, "test", s.Value())
+	assert.Equal(t, "test", s.Get())
 	s.Null = true
-	assert.Nil(t, s.Value())
+	assert.Nil(t, s.Get())
 
 	cd := columnDef{
 		typ: 10,

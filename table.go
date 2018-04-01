@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/fzerorubigd/goql/astdata"
 )
 
 // ValueType is an enum contain supported value type in system
@@ -15,8 +17,8 @@ type String struct {
 	Null   bool
 }
 
-// Value return the actual value (and nil)
-func (s String) Value() interface{} {
+// Get return the actual value (and nil)
+func (s String) Get() interface{} {
 	if s.Null {
 		return nil
 	}
@@ -30,8 +32,8 @@ type Number struct {
 	Null   bool
 }
 
-// Value return the actual value (and nil)
-func (n Number) Value() interface{} {
+// Get return the actual value (and nil)
+func (n Number) Get() interface{} {
 	if n.Null {
 		return nil
 	}
@@ -45,13 +47,24 @@ type Bool struct {
 	Null bool
 }
 
-// Value return the actual value (and nil)
-func (b Bool) Value() interface{} {
+// Get return the actual value (and nil)
+func (b Bool) Get() interface{} {
 	if b.Null {
 		return nil
 	}
 
 	return b.Bool
+}
+
+// Definition is the type to handle type definition
+type Definition struct {
+	Definition astdata.Definition
+}
+
+// Get return the actual definition
+func (d Definition) Get() interface{} {
+	// since its an interface so it could be nil
+	return d.Definition
 }
 
 const (
@@ -61,6 +74,8 @@ const (
 	ValueTypeNumber
 	// ValueTypeBool is the bool type
 	ValueTypeBool
+	// ValueTypeDefinition is a definition special type
+	ValueTypeDefinition
 )
 
 var (
@@ -68,9 +83,9 @@ var (
 	lock   = &sync.Mutex{}
 )
 
-// Valuer is replacement to prevent using the interface{} it is used when the value is required
-type Valuer interface {
-	Value() interface{}
+// Getter is replacement to prevent using the interface{} it is used when the value is required
+type Getter interface {
+	Get() interface{}
 }
 
 // StringValuer is provider for a value for a table
@@ -86,6 +101,11 @@ type NumberValuer interface {
 // BoolValuer is the Boolean valuer
 type BoolValuer interface {
 	Value(interface{}) Bool
+}
+
+// DefinitionValuer is used to handle definition column
+type DefinitionValuer interface {
+	Value(interface{}) Definition
 }
 
 // columnDef is the helper for column definition
@@ -182,6 +202,7 @@ func RegisterField(t string, name string, valuer interface{}) {
 	case BoolValuer:
 	case NumberValuer:
 	case StringValuer:
+	case DefinitionValuer:
 	default:
 		panic(fmt.Sprintf("valuer is not a valid valuer, its is %T", valuer))
 	}
@@ -195,7 +216,7 @@ func RegisterField(t string, name string, valuer interface{}) {
 
 // getTableFields is the get field for a table, empty field name is ignored, so the caller could fill
 // calculated item
-func getTableFields(p interface{}, t string, res chan<- []Valuer, fields ...string) error {
+func getTableFields(p interface{}, t string, res chan<- []Getter, fields ...string) error {
 	lock.Lock()
 	defer lock.Unlock()
 	tbl, ok := tables[t]
@@ -230,7 +251,7 @@ func getTableFields(p interface{}, t string, res chan<- []Valuer, fields ...stri
 		defer close(res)
 		cache := tbl.data.Provide(p)
 		for i := range cache {
-			n := make([]Valuer, len(fields))
+			n := make([]Getter, len(fields))
 			for f := range fields {
 				if fields[f] == "" {
 					// this is a placeholder
@@ -242,6 +263,8 @@ func getTableFields(p interface{}, t string, res chan<- []Valuer, fields ...stri
 				case NumberValuer:
 					n[f] = t.Value(cache[i])
 				case BoolValuer:
+					n[f] = t.Value(cache[i])
+				case DefinitionValuer:
 					n[f] = t.Value(cache[i])
 				}
 			}

@@ -81,7 +81,7 @@ func newItem(t parse.ItemType, v string, p int) parse.Item {
 }
 
 // execute the query
-func execute(c interface{}, src *parse.Query) ([]string, [][]Valuer, error) {
+func execute(c interface{}, src *parse.Query) ([]string, [][]Getter, error) {
 	var err error
 	ctx := &context{pkg: c, q: src}
 
@@ -317,9 +317,9 @@ func selectColumn(ctx *context) error {
 	return nil
 }
 
-func filterColumn(ctx *context, items ...Valuer) []Valuer {
+func filterColumn(ctx *context, items ...Getter) []Getter {
 	fl := ctx.flds
-	res := make([]Valuer, 0, len(items))
+	res := make([]Getter, 0, len(items))
 	for i := range fl {
 		if fl[i].show {
 			res = append(res, items[i])
@@ -329,7 +329,7 @@ func filterColumn(ctx *context, items ...Valuer) []Valuer {
 	return res
 }
 
-func fillGaps(ctx *context, res []Valuer) error {
+func fillGaps(ctx *context, res []Getter) error {
 	fl := ctx.flds
 	for i := range fl {
 		switch fl[i].typ {
@@ -349,7 +349,7 @@ func fillGaps(ctx *context, res []Valuer) error {
 	// TODO : exec this at the getTableFields not after that
 	for i := range fl {
 		if fl[i].typ == fieldTypeFunction {
-			args := make([]Valuer, len(fl[i].argsOrder))
+			args := make([]Getter, len(fl[i].argsOrder))
 			for j := range fl[i].argsOrder {
 				args[j] = res[fl[i].argsOrder[j]]
 			}
@@ -364,7 +364,7 @@ func fillGaps(ctx *context, res []Valuer) error {
 	return nil
 }
 
-func callWhere(where getter, i []Valuer) (ok bool, err error) {
+func callWhere(where getter, i []Getter) (ok bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("error : %v", e)
@@ -374,8 +374,8 @@ func callWhere(where getter, i []Valuer) (ok bool, err error) {
 	return toBool(where(i)), nil
 }
 
-func doQuery(ctx *context) ([]string, [][]Valuer, error) {
-	res := make(chan []Valuer, 3)
+func doQuery(ctx *context) ([]string, [][]Getter, error) {
+	res := make(chan []Getter, 3)
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 	var all = make([]string, len(ctx.flds))
 	for i := range ctx.flds {
@@ -393,7 +393,7 @@ func doQuery(ctx *context) ([]string, [][]Valuer, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	a := make([][]Valuer, 0)
+	a := make([][]Getter, 0)
 	for i := range res {
 		if err = fillGaps(ctx, i); err != nil {
 			close(res) // prevent the channel leak. TODO : better way
@@ -428,7 +428,7 @@ func doQuery(ctx *context) ([]string, [][]Valuer, error) {
 	if ss.Count >= 0 && ss.Start >= 0 {
 		l := len(a)
 		if ss.Start >= l {
-			a = [][]Valuer{}
+			a = [][]Getter{}
 		} else if ss.Start+ss.Count >= l {
 			a = a[ss.Start:] // to the end
 		} else {

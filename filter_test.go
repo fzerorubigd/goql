@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	rowTest = []Valuer{
+	rowTest = []Getter{
 		Number{Number: 1},
 		Bool{Bool: true},
 		String{String: "a"},
@@ -20,7 +20,7 @@ var (
 )
 
 func newGetter(in interface{}) getter {
-	return func([]Valuer) interface{} {
+	return func([]Getter) interface{} {
 		return in
 	}
 }
