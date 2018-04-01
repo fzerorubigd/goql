@@ -1,9 +1,11 @@
 package astdata
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testArrr = `
@@ -38,6 +40,9 @@ func TestArrayType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, at.ValueDefinition())
 
 	assert.Equal(t, "[]string", at.String())
+	nd, err := NewDefinition(at.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(at))
 
 	v, err := p.FindVariable("X")
 	assert.NoError(t, err)
@@ -50,7 +55,12 @@ func TestArrayType(t *testing.T) {
 	assert.Equal(t, 0, et.Len()) // TODO : size
 	assert.IsType(t, &IdentType{}, et.ValueDefinition())
 
-	assert.Equal(t, "[...]string", et.String())
+	assert.Equal(t, "[...]string{}", et.String())
+	nd, err = NewDefinition(`[...]string{}`)
+	require.NoError(t, err)
+	fmt.Println(nd.String())
+	assert.True(t, nd.Compare(et))
+	assert.False(t, nd.Compare(at))
 
 	v, err = p.FindVariable("Y")
 	assert.NoError(t, err)
@@ -64,5 +74,8 @@ func TestArrayType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, at.ValueDefinition())
 
 	assert.Equal(t, "[10]string", at.String())
-
+	nd, err = NewDefinition(at.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(at))
+	assert.False(t, nd.Compare(et))
 }

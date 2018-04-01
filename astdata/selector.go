@@ -10,6 +10,7 @@ type SelectorType struct {
 	fl  *File
 
 	selector string
+	resolved string
 	ident    string
 	imp      *Import
 }
@@ -38,6 +39,12 @@ func (s *SelectorType) Import() *Import {
 	return s.imp
 }
 
+// Compare try to compare this to def
+func (s *SelectorType) Compare(def Definition) bool {
+	// TODO : for this type, structs/map/func/interface that can contain a SelectorType we should check both canonical and real pkg
+	return s.String() == def.String()
+}
+
 func getSelector(p *Package, f *File, t *ast.SelectorExpr) Definition {
 	it := t.X.(*ast.Ident)
 	res := &SelectorType{
@@ -46,6 +53,8 @@ func getSelector(p *Package, f *File, t *ast.SelectorExpr) Definition {
 		ident:    nameFromIdent(t.Sel),
 		selector: nameFromIdent(it),
 	}
+
+	res.resolved = f.resolvePkg(res.selector)
 
 	for i := range f.imports {
 		if f.imports[i].Canonical() == res.selector || f.imports[i].TargetPackage() == res.selector {

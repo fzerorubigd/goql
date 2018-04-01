@@ -45,6 +45,9 @@ func TestInterfaceType(t *testing.T) {
 	assert.Equal(t, f, def.File())
 
 	assert.Equal(t, "interface{\n\tTest(string) error\n}", def.String())
+	nd, err := NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	tn, err = p.FindType("II2")
 	assert.NoError(t, err)
@@ -60,6 +63,9 @@ func TestInterfaceType(t *testing.T) {
 	assert.Equal(t, "func (string) string", fn.Func().String())
 	assert.Equal(t, p, def.Package())
 	assert.Equal(t, f, def.File())
+	nd, err = NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	em := def.Embeds()[0]
 	require.IsType(t, &IdentType{}, em)

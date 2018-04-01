@@ -55,6 +55,11 @@ func (c *ChannelType) ValueDefinition() Definition {
 	return c.def
 }
 
+// Compare try to compare this to def
+func (c *ChannelType) Compare(def Definition) bool {
+	return c.String() == def.String()
+}
+
 func getChannel(p *Package, f *File, t *ast.ChanType) Definition {
 	return &ChannelType{
 		pkg:       p,

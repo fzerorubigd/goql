@@ -106,6 +106,11 @@ func (s *StructType) Embeds() Embeds {
 	return s.embeds
 }
 
+// Compare try to compare this to def
+func (s *StructType) Compare(def Definition) bool {
+	return s.String() == def.String()
+}
+
 func getStruct(p *Package, f *File, t *ast.StructType) Definition {
 	res := &StructType{
 		pkg: p,

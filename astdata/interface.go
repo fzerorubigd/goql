@@ -1,6 +1,8 @@
 package astdata
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 // InterfaceType is the interface in go code
 type InterfaceType struct {
@@ -44,6 +46,11 @@ func (i *InterfaceType) Functions() []*Function {
 // Embeds is the embeded interfaces
 func (i *InterfaceType) Embeds() []Definition {
 	return i.embeds
+}
+
+// Compare try to compare this to def
+func (i *InterfaceType) Compare(def Definition) bool {
+	return i.String() == def.String()
 }
 
 func getInterface(p *Package, f *File, t *ast.InterfaceType) Definition {

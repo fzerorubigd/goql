@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testStruct = `
@@ -41,6 +42,9 @@ func TestStructType(t *testing.T) {
 	assert.Equal(t, 0, len(def.Fields()))
 	assert.Equal(t, 0, len(def.Embeds()))
 	assert.Equal(t, "struct{}", def.String())
+	nd, err := NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	ST2, err := p.FindType("ST2")
 	assert.NoError(t, err)
@@ -56,6 +60,9 @@ func TestStructType(t *testing.T) {
 	assert.Equal(t, reflect.StructTag("tag:\"tag_test\""), f1.Tags())
 
 	assert.Equal(t, "struct {\n\tA1 int `tag:\"tag_test\"`\n}", def.String())
+	nd, err = NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	ST3, err := p.FindType("ST3")
 	assert.NoError(t, err)
