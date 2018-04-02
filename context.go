@@ -347,7 +347,9 @@ func fillGaps(ctx *context, res []Getter) error {
 	var err error
 	// once more for functions :/ if there is a way to fill it in one loop :/
 	// TODO : exec this at the getTableFields not after that
-	for i := range fl {
+	// since functions added before its parameter, doing it backward to make sure if a function is argument to another function
+	// is field before
+	for i := len(fl) - 1; i > -1; i-- {
 		if fl[i].typ == fieldTypeFunction {
 			args := make([]Getter, len(fl[i].argsOrder))
 			for j := range fl[i].argsOrder {

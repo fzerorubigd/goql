@@ -333,6 +333,8 @@ func toBool(in interface{}) bool {
 		return t != nil
 	case null:
 		return t != nullValue
+	case nil:
+		return false
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -353,6 +355,8 @@ func toNumber(in interface{}) float64 {
 		return 0
 	case null:
 		return float64(t)
+	case nil:
+		return 0
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -370,13 +374,15 @@ func toString(in interface{}) string {
 			return ""
 		}
 		return t.String()
+	case nil:
+		return ""
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
 
 func toDefinition(in interface{}) astdata.Definition {
 	switch t := in.(type) {
-	case bool, float64:
+	case bool, float64, nil:
 		return nil
 	case string:
 		def, err := astdata.NewDefinition(t)
