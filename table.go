@@ -129,6 +129,8 @@ func (c columnDef) Type() ValueType {
 		return ValueTypeNumber
 	case BoolValuer:
 		return ValueTypeBool
+	case DefinitionValuer:
+		return ValueTypeDefinition
 	default:
 		panic("invalid valuer!")
 	}

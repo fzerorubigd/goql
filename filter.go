@@ -370,9 +370,6 @@ func toString(in interface{}) string {
 	case float64:
 		return fmt.Sprint(t)
 	case astdata.Definition:
-		if t == nil {
-			return ""
-		}
 		return t.String()
 	case nil:
 		return ""
@@ -405,10 +402,9 @@ func toNull(in interface{}) null {
 	case float64:
 		return notNullValue
 	case astdata.Definition:
-		if t == nil {
-			return nullValue
-		}
 		return notNullValue
+	case nil:
+		return nullValue
 	case null:
 		return t
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/parse"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,6 +35,20 @@ type c3 struct {
 func (c c3) Value(in interface{}) Bool {
 	r := in.(row)
 	return Bool{Bool: r%2 == 0}
+}
+
+type c4 struct {
+}
+
+func (c c4) Value(in interface{}) Definition {
+	r := in.(row)
+	var def astdata.Definition
+	if r%2 == 0 {
+		def, _ = astdata.NewDefinition("int")
+	} else {
+		def, _ = astdata.NewDefinition("string")
+	}
+	return Definition{Definition: def}
 }
 
 type provider struct {

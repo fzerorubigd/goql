@@ -34,7 +34,7 @@ func TestDriver(t *testing.T) {
 	assert.Error(t, err)
 	assert.NoError(t, ss.Close())
 
-	ss, err = c.Prepare("select name, pkg_name from funcs")
+	ss, err = c.Prepare("select name, pkg_name,def from funcs")
 	defer func() {
 		assert.NoError(t, ss.Close())
 	}()
@@ -54,10 +54,11 @@ func TestDriver(t *testing.T) {
 	}()
 
 	for s.Next() {
-		var name, pkg string
+		var name, pkg, def string
 
-		assert.NoError(t, s.Scan(&name, &pkg))
+		assert.NoError(t, s.Scan(&name, &pkg, &def))
 		assert.NotEmpty(t, name)
 		assert.NotEmpty(t, pkg)
+		assert.NotEmpty(t, def)
 	}
 }
