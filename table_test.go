@@ -15,6 +15,8 @@ func (nilProvider) Provide(in interface{}) []interface{} {
 }
 
 func TestTables(t *testing.T) {
+	quit := make(chan struct{}, 1)
+
 	RegisterTable("test1", provider{})
 
 	RegisterField("test1", "c1", c1{})
@@ -41,7 +43,7 @@ func TestTables(t *testing.T) {
 
 	res := make(chan []Getter, 3)
 
-	err = getTableFields(tablet(1), "test1", res, "c1", "c2", "c3", "c4")
+	err = getTableFields(tablet(1), "test1", res, quit, "c1", "c2", "c3", "c4")
 	assert.NoError(t, err)
 
 	var cnt int64
@@ -60,7 +62,7 @@ func TestTables(t *testing.T) {
 
 	res = make(chan []Getter, 3)
 
-	err = getTableFields(tablet(1), "test1", res, "c2", "c3")
+	err = getTableFields(tablet(1), "test1", res, quit, "c2", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -72,7 +74,7 @@ func TestTables(t *testing.T) {
 	}
 
 	res = make(chan []Getter, 3)
-	err = getTableFields(tablet(1), "test1", res, "c2", "", "c3")
+	err = getTableFields(tablet(1), "test1", res, quit, "c2", "", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -89,9 +91,9 @@ func TestTables(t *testing.T) {
 	assert.Panics(t, func() { RegisterField("test1", "c1", c1{}) })
 	assert.Panics(t, func() { RegisterField("test1", "c11", 10) })
 
-	assert.Error(t, getTableFields(1, "not-exist", res, "col"))
-	assert.Error(t, getTableFields(1, "test1", res, "col"))
-	assert.Error(t, getTableFields(1, "test1", res))
+	assert.Error(t, getTableFields(1, "not-exist", res, quit, "col"))
+	assert.Error(t, getTableFields(1, "test1", res, quit, "col"))
+	assert.Error(t, getTableFields(1, "test1", res, quit))
 }
 
 func TestTypes(t *testing.T) {

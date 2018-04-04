@@ -17,9 +17,8 @@ type conn struct {
 }
 
 type stmt struct {
-	pkg      *astdata.Package
-	query    *parse.Query
-	executed bool
+	pkg   *astdata.Package
+	query *parse.Query
 }
 
 type rows struct {

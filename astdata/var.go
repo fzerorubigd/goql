@@ -101,8 +101,7 @@ func getForeignType(pkg *Package, pkgName string, fl *File, foreignTyp Definitio
 		name := ft.ident
 		c := name[0]
 		if c >= 'A' && c <= 'Z' {
-			var res Definition
-			res = &SelectorType{
+			var res Definition = &SelectorType{
 				selector: pkgName,
 				fl:       fl,
 				pkg:      pkg,

@@ -16,7 +16,7 @@ func TestIsArray(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, Bool{Bool: true}, g)
 
-	g, err = isArrayFn(0).Execute(nil, nil)
+	_, err = isArrayFn(0).Execute(nil, nil)
 	assert.Error(t, err)
 
 	g, err = isArrayFn(0).Execute(Number{})

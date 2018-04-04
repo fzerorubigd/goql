@@ -13,10 +13,9 @@ import (
 )
 
 var (
-	cache       = make(map[string]*Package)
-	builtinType map[string]bool
-	lock        = sync.RWMutex{}
-	builtin     *Package
+	cache   = make(map[string]*Package)
+	lock    = sync.RWMutex{}
+	builtin *Package
 )
 
 func translateToFullPath(path string, packages ...string) (string, error) {
@@ -133,19 +132,4 @@ func getBuiltin() *Package {
 		}
 	}
 	return builtin
-}
-
-func isBuiltinIdent(ident string) bool {
-	if builtinType == nil {
-		builtinType = make(map[string]bool)
-		b := getBuiltin()
-		for f := range b.files {
-			for t := range b.files[f].types {
-				builtinType[b.files[f].types[t].name] = true
-			}
-		}
-	}
-
-	return builtinType[ident]
-
 }

@@ -22,13 +22,13 @@ const (
 type field struct {
 	order      int
 	name       string // TODO : support for alias
-	show       bool
 	typ        fieldType
 	staticStr  string // for static column only
 	staticNum  float64
-	staticBool bool
 	copy       int   // for duplicated field, copy from another field
 	argsOrder  []int // for function column only, the order of arguments in the fields list
+	show       bool
+	staticBool bool
 }
 
 type context struct {
@@ -179,7 +179,7 @@ func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) 
 		return nil, fmt.Errorf("function '%s' is not registered", fl.Item.Value())
 	}
 	f := []field{
-		field{
+		{
 			order: ctx.order,
 			name:  fl.Item.Value(),
 			show:  show,
@@ -386,8 +386,12 @@ func doQuery(ctx *context) ([]string, [][]Getter, error) {
 			all[i] = ctx.flds[i].name
 		}
 	}
-
-	err := getTableFields(ctx.pkg, ss.Table, res, all...)
+	quit := make(chan struct{}, 1)
+	defer func() {
+		quit <- struct{}{}
+		close(quit) // prevent the channel leak.
+	}()
+	err := getTableFields(ctx.pkg, ss.Table, res, quit, all...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -398,7 +402,6 @@ func doQuery(ctx *context) ([]string, [][]Getter, error) {
 	a := make([][]Getter, 0)
 	for i := range res {
 		if err = fillGaps(ctx, i); err != nil {
-			close(res) // prevent the channel leak. TODO : better way
 			return nil, nil, err
 		}
 		ok, err := callWhere(where, i)

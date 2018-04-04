@@ -216,20 +216,7 @@ func RegisterField(t string, name string, valuer interface{}) {
 	}
 }
 
-// getTableFields is the get field for a table, empty field name is ignored, so the caller could fill
-// calculated item
-func getTableFields(p interface{}, t string, res chan<- []Getter, fields ...string) error {
-	lock.Lock()
-	defer lock.Unlock()
-	tbl, ok := tables[t]
-	if !ok {
-		return fmt.Errorf("invalid table name %s", t)
-	}
-
-	if len(fields) == 0 {
-		return fmt.Errorf("no field selected")
-	}
-
+func checkTableFields(tbl *table, fields ...string) error {
 	var invalid []string
 	for i := range fields {
 		if fields[i] == "" {
@@ -242,14 +229,29 @@ func getTableFields(p interface{}, t string, res chan<- []Getter, fields ...stri
 	if len(invalid) > 0 {
 		return fmt.Errorf("invalid field(s) : %s", strings.Join(invalid, ", "))
 	}
+	return nil
+}
+
+// getTableFields is the get field for a table, empty field name is ignored, so the caller could fill
+// calculated item
+func getTableFields(p interface{}, t string, res chan<- []Getter, quit chan struct{}, fields ...string) error {
+	lock.Lock()
+	defer lock.Unlock()
+	tbl, ok := tables[t]
+	if !ok {
+		return fmt.Errorf("invalid table name %s", t)
+	}
+
+	if len(fields) == 0 {
+		return fmt.Errorf("no field selected")
+	}
+
+	if err := checkTableFields(tbl, fields...); err != nil {
+		return err
+	}
 
 	// do concurrently
 	go func() {
-		defer func() {
-			if e := recover(); e != nil {
-				// closed channel? ignore it
-			}
-		}()
 		defer close(res)
 		cache := tbl.data.Provide(p)
 		for i := range cache {
@@ -270,7 +272,11 @@ func getTableFields(p interface{}, t string, res chan<- []Getter, fields ...stri
 					n[f] = t.Value(cache[i])
 				}
 			}
-			res <- n
+			select {
+			case res <- n:
+			case <-quit:
+				return // whenever catch a close signal, exit from loop
+			}
 		}
 	}()
 	return nil

@@ -58,6 +58,7 @@ func (sfd structFieldDefFn) Execute(args ...Getter) (Getter, error) {
 	var f astdata.Definition
 	if sfd == 0 {
 		fl := st.Fields()
+	bigSwitch:
 		switch t := args[1].Get().(type) {
 		case float64:
 			nm := int(t)
@@ -66,17 +67,13 @@ func (sfd structFieldDefFn) Execute(args ...Getter) (Getter, error) {
 			}
 			f = fl[nm-1].Definition()
 		case string:
-			var found bool
 			for i := range fl {
 				if fl[i].Name() == t {
 					f = fl[i].Definition()
-					found = true
-					break
+					break bigSwitch
 				}
 			}
-			if !found {
-				return Definition{}, nil
-			}
+			return Definition{}, nil
 		default:
 			return Definition{}, nil
 		}
@@ -132,6 +129,7 @@ func (sft structFieldTagFn) Execute(args ...Getter) (Getter, error) {
 	var f reflect.StructTag
 	if sft == 0 {
 		fl := st.Fields()
+	bigSwitch:
 		switch t := args[1].Get().(type) {
 		case float64:
 			nm := int(t)
@@ -140,17 +138,13 @@ func (sft structFieldTagFn) Execute(args ...Getter) (Getter, error) {
 			}
 			f = fl[nm-1].Tags()
 		case string:
-			var found bool
 			for i := range fl {
 				if fl[i].Name() == t {
 					f = fl[i].Tags()
-					found = true
-					break
+					break bigSwitch
 				}
 			}
-			if !found {
-				return String{Null: true}, nil
-			}
+			return String{Null: true}, nil
 		default:
 			return String{Null: true}, nil
 		}

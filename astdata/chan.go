@@ -9,7 +9,9 @@ import (
 type ChanDir int
 
 const (
+	// SEND is send only channel
 	SEND ChanDir = 1 << iota
+	// RECV is the receive only channel
 	RECV
 )
 

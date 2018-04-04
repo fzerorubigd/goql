@@ -16,7 +16,7 @@ func TestIsStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, Bool{Bool: true}, g)
 
-	g, err = isStructFn(0).Execute(nil, nil)
+	_, err = isStructFn(0).Execute(nil, nil)
 	assert.Error(t, err)
 
 	g, err = isStructFn(0).Execute(Number{})

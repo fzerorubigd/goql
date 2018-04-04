@@ -16,7 +16,7 @@ func TestIsMap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, Bool{Bool: true}, g)
 
-	g, err = isMapFn(0).Execute(nil, nil)
+	_, err = isMapFn(0).Execute(nil, nil)
 	assert.Error(t, err)
 
 	g, err = isMapFn(0).Execute(Number{})
@@ -38,7 +38,7 @@ func TestMapKey(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, g.Get())
 
-	g, err = mapKeyFn(0).Execute(nil, nil)
+	_, err = mapKeyFn(0).Execute(nil, nil)
 	assert.Error(t, err)
 
 	g, err = mapKeyFn(0).Execute(Number{})
@@ -60,7 +60,7 @@ func TestMapValue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, g.Get())
 
-	g, err = mapValFn(0).Execute(nil, nil)
+	_, err = mapValFn(0).Execute(nil, nil)
 	assert.Error(t, err)
 
 	g, err = mapValFn(0).Execute(Number{})

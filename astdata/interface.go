@@ -43,7 +43,7 @@ func (i *InterfaceType) Functions() []*Function {
 	return i.functions
 }
 
-// Embeds is the embeded interfaces
+// Embeds is the embedded interfaces
 func (i *InterfaceType) Embeds() []Definition {
 	return i.embeds
 }

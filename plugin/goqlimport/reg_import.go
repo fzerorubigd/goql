@@ -19,7 +19,7 @@ func (ic importCheck) Value(in interface{}) goql.Bool {
 	fl := in.(*astdata.File)
 	var src = []byte(fl.Source())
 	dst, err := imports.Process(fl.FullPath(), src, ic.opt)
-	b := err == nil && bytes.Compare(src, dst) == 0
+	b := err == nil && bytes.Equal(src, dst)
 
 	return goql.Bool{
 		Bool: b,
