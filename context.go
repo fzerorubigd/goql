@@ -170,6 +170,7 @@ func getFieldStar(ctx *context) []field {
 	for i := range ctx.definition {
 		res[ctx.definition[i].Order()], _ = getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
 	}
+
 	return res
 }
 
@@ -334,13 +335,13 @@ func fillGaps(ctx *context, res []Getter) error {
 	for i := range fl {
 		switch fl[i].typ {
 		case fieldTypeCopy:
-			res[i] = res[fl[i].copy]
+			res[fl[i].order] = res[fl[i].copy]
 		case fieldTypeStaticNumber:
-			res[i] = Number{Number: fl[i].staticNum}
+			res[fl[i].order] = Number{Number: fl[i].staticNum}
 		case fieldTypeStaticString:
-			res[i] = String{String: fl[i].staticStr}
+			res[fl[i].order] = String{String: fl[i].staticStr}
 		case fieldTypeStaticBool:
-			res[i] = Bool{Bool: fl[i].staticBool}
+			res[fl[i].order] = Bool{Bool: fl[i].staticBool}
 		}
 	}
 
@@ -352,11 +353,10 @@ func fillGaps(ctx *context, res []Getter) error {
 	for i := len(fl) - 1; i > -1; i-- {
 		if fl[i].typ == fieldTypeFunction {
 			args := make([]Getter, len(fl[i].argsOrder))
-			for j := range fl[i].argsOrder {
-				args[j] = res[fl[i].argsOrder[j]]
+			for j, v := range fl[i].argsOrder {
+				args[j] = res[v]
 			}
-
-			res[i], err = executeFunction(fl[i].name, args...)
+			res[fl[i].order], err = executeFunction(fl[i].name, args...)
 			if err != nil {
 				return err
 			}
@@ -383,7 +383,7 @@ func doQuery(ctx *context) ([]string, [][]Getter, error) {
 	for i := range ctx.flds {
 		// only fields are allowed
 		if ctx.flds[i].typ == fieldTypeColumn {
-			all[i] = ctx.flds[i].name
+			all[ctx.flds[i].order] = ctx.flds[i].name
 		}
 	}
 	quit := make(chan struct{}, 1)
