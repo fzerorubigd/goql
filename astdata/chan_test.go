@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testChan = `
@@ -38,6 +39,9 @@ func TestChanType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, ch1c.ValueDefinition())
 
 	assert.Equal(t, "chan int", ch1c.String())
+	nd, err := NewDefinition(ch1c.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(ch1c))
 
 	ch1 = fn.def.parameters[1].def
 	assert.IsType(t, &ChannelType{}, ch1)
@@ -48,6 +52,9 @@ func TestChanType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, ch1c.ValueDefinition())
 
 	assert.Equal(t, "<-chan string", ch1c.String())
+	nd, err = NewDefinition(ch1c.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(ch1c))
 
 	ch1 = fn.def.results[0].def
 	assert.IsType(t, &ChannelType{}, ch1)
@@ -58,5 +65,8 @@ func TestChanType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, ch1c.ValueDefinition())
 
 	assert.Equal(t, "chan<- float64", ch1c.String())
+	nd, err = NewDefinition(ch1c.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(ch1c))
 
 }

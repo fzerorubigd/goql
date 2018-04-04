@@ -101,6 +101,16 @@ func (f *File) Docs() Docs {
 	return f.docs
 }
 
+// try to translate package name to real package name, so the real import is used
+func (f *File) resolvePkg(p string) string {
+	for i := range f.imports {
+		if f.imports[i].canonical == p {
+			return f.imports[i].TargetPackage()
+		}
+	}
+	return p
+}
+
 // ParseFile try to parse a single file for its annotations
 func ParseFile(src string, p *Package) (*File, error) {
 	fset := token.NewFileSet()

@@ -1,6 +1,8 @@
 package astdata
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 // StarType is the pointer of a type
 type StarType struct {
@@ -26,6 +28,11 @@ func (s *StarType) File() *File {
 // Target is the target type of this star type
 func (s *StarType) Target() Definition {
 	return s.def
+}
+
+// Compare try to compare this to def
+func (s *StarType) Compare(def Definition) bool {
+	return s.String() == def.String()
 }
 
 func getStar(p *Package, f *File, t *ast.StarExpr) Definition {

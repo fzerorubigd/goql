@@ -37,7 +37,7 @@ func (f *Field) Tags() reflect.StructTag {
 
 // Embed is the embedded type in the struct or interface
 type Embed struct {
-	Definition
+	def  Definition
 	docs Docs
 	tags reflect.StructTag
 }
@@ -50,6 +50,15 @@ func (e *Embed) Docs() Docs {
 // Tags return the struct tags of the field
 func (e *Embed) Tags() reflect.StructTag {
 	return e.tags
+}
+
+// Definition of the embed item
+func (e *Embed) Definition() Definition {
+	return e.def
+}
+
+func (e *Embed) String() string {
+	return e.def.String()
 }
 
 // Embeds is a list of embedded items
@@ -106,6 +115,11 @@ func (s *StructType) Embeds() Embeds {
 	return s.embeds
 }
 
+// Compare try to compare this to def
+func (s *StructType) Compare(def Definition) bool {
+	return s.String() == def.String()
+}
+
 func getStruct(p *Package, f *File, t *ast.StructType) Definition {
 	res := &StructType{
 		pkg: p,
@@ -128,7 +142,7 @@ func getStruct(p *Package, f *File, t *ast.StructType) Definition {
 			}
 		} else {
 			e := Embed{
-				Definition: newType(p, f, s.Type),
+				def: newType(p, f, s.Type),
 			}
 			if s.Tag != nil {
 				e.tags = reflect.StructTag(s.Tag.Value)

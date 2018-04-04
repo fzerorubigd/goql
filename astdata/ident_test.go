@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testIdent = `
@@ -31,6 +32,9 @@ func TestIdentType(t *testing.T) {
 	assert.Equal(t, "string", def.String())
 	assert.Equal(t, p, def.Package())
 	assert.Equal(t, f, def.File())
+	nd, err := NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	v, err := p.FindVariable("x")
 	assert.NoError(t, err)
@@ -39,5 +43,8 @@ func TestIdentType(t *testing.T) {
 	def = v.def.(*IdentType)
 	assert.Equal(t, "ALPHA", def.Ident())
 	assert.Equal(t, "ALPHA", def.String())
+	nd, err = NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 }

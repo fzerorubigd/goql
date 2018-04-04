@@ -55,7 +55,17 @@ func (a *ArrayType) Slice() bool {
 
 // String represent ellipsis array in string
 func (e *EllipsisType) String() string {
-	return fmt.Sprintf("[...]%s", e.def.String())
+	return fmt.Sprintf("[...]%s{}", e.def.String())
+}
+
+// Compare try to compare this to def
+func (a *ArrayType) Compare(def Definition) bool {
+	return a.String() == def.String()
+}
+
+// Compare try to compare this to def
+func (e *EllipsisType) Compare(def Definition) bool {
+	return e.String() == def.String()
 }
 
 func getArray(p *Package, f *File, t *ast.ArrayType) Definition {

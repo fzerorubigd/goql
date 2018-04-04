@@ -40,6 +40,7 @@ func registerVariable() {
 	RegisterField("vars", "file", genericFileName{})
 	RegisterField("vars", "exported", genericIsExported{})
 	RegisterField("vars", "docs", genericDoc{})
+	RegisterField("vars", "def", genericDefinition{})
 }
 
 func init() {

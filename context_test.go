@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/parse"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,6 +37,20 @@ func (c c3) Value(in interface{}) Bool {
 	return Bool{Bool: r%2 == 0}
 }
 
+type c4 struct {
+}
+
+func (c c4) Value(in interface{}) Definition {
+	r := in.(row)
+	var def astdata.Definition
+	if r%2 == 0 {
+		def, _ = astdata.NewDefinition("int")
+	} else {
+		def, _ = astdata.NewDefinition("string")
+	}
+	return Definition{Definition: def}
+}
+
 type provider struct {
 }
 
@@ -52,10 +67,10 @@ func (provider) Provide(in interface{}) []interface{} {
 type concat struct {
 }
 
-func (concat) Execute(in ...Valuer) (Valuer, error) {
+func (concat) Execute(in ...Getter) (Getter, error) {
 	s := ""
 	for i := range in {
-		s += fmt.Sprint(in[i].Value())
+		s += fmt.Sprint(in[i].Get())
 	}
 	return String{String: s}, nil
 }
@@ -63,7 +78,7 @@ func (concat) Execute(in ...Valuer) (Valuer, error) {
 type wrong struct {
 }
 
-func (wrong) Execute(in ...Valuer) (Valuer, error) {
+func (wrong) Execute(in ...Getter) (Getter, error) {
 	return nil, fmt.Errorf("hi, i am error")
 }
 
@@ -144,8 +159,8 @@ func TestContext(t *testing.T) {
 	assert.Equal(t, 2, len(row))
 	assert.Equal(t, []string{"concat", "static"}, row)
 	assert.Equal(t, 1, len(data))
-	assert.Equal(t, "0th rowstring", data[0][0].Value())
-	assert.Equal(t, 10.0, data[0][1].Value())
+	assert.Equal(t, "0th rowstring", data[0][0].Get())
+	assert.Equal(t, 10.0, data[0][1].Get())
 }
 
 func TestContextErr(t *testing.T) {
@@ -223,7 +238,7 @@ func TestContextErr(t *testing.T) {
 	assert.Nil(t, row)
 	assert.Nil(t, data)
 
-	g := func([]Valuer) interface{} {
+	g := func([]Getter) interface{} {
 		panic("err")
 	}
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testFunc = `
@@ -16,6 +17,8 @@ func YY (in string, c bool) (int, error) {
 func YY2 () (err error) {
 
 }
+
+func YY3(...string){}
 
 `
 
@@ -53,8 +56,22 @@ func TestFuncType(t *testing.T) {
 	assert.IsType(t, &IdentType{}, v4.Definition())
 
 	assert.Equal(t, "func (string, bool) (int, error)", def.String())
+	nd, err := NewDefinition(def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(def))
 
 	fn, err = p.FindFunction("YY2")
 	assert.NoError(t, err)
 	assert.Equal(t, "func () error", fn.def.String())
+	nd, err = NewDefinition(fn.def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(fn.def))
+
+	fn, err = p.FindFunction("YY3")
+	assert.NoError(t, err)
+	assert.Equal(t, "func (...string)", fn.def.String())
+	nd, err = NewDefinition(fn.def.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(fn.def))
+
 }

@@ -14,6 +14,7 @@ type aller struct {
 	docs astdata.Docs
 	pkg  *astdata.Package
 	fl   *astdata.File
+	def  astdata.Definition
 }
 
 func (a aller) Name() string {
@@ -32,12 +33,17 @@ func (a aller) File() *astdata.File {
 	return a.fl
 }
 
+func (a aller) Definition() astdata.Definition {
+	return a.def
+}
+
 func TestGeneric(t *testing.T) {
 	assert.Equal(t, String{String: "Test"}, genericName{}.Value(aller{name: "Test"}))
 	assert.Equal(t, Bool{Bool: true}, genericIsExported{}.Value(aller{name: "Test"}))
 	assert.Equal(t, Bool{Bool: false}, genericIsExported{}.Value(aller{name: "test"}))
 	assert.Equal(t, String{String: "// Test\n// Line2"}, genericDoc{}.Value(aller{docs: astdata.Docs{"// Test", "// Line2"}}))
 	assert.Equal(t, String{Null: true}, genericDoc{}.Value(aller{}))
+	assert.Equal(t, Definition{Definition: &astdata.IdentType{}}, genericDefinition{}.Value(aller{def: &astdata.IdentType{}}))
 
 	p, err := astdata.ParsePackage("github.com/fzerorubigd/fixture")
 	require.NoError(t, err)

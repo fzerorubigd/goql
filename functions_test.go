@@ -11,19 +11,19 @@ type fn struct {
 }
 
 //
-func (f *fn) Execute(v ...Valuer) (Valuer, error) {
+func (f *fn) Execute(v ...Getter) (Getter, error) {
 	if len(v) != 2 {
 		return nil, fmt.Errorf("test function need two arg")
 	}
 
-	switch t := v[0].Value().(type) {
+	switch t := v[0].Get().(type) {
 	case string:
-		if r, ok := v[1].Value().(string); ok {
+		if r, ok := v[1].Get().(string); ok {
 			return String{String: t + r}, nil
 		}
 	}
 
-	return nil, fmt.Errorf("invalid types %T, %T", v[0].Value(), v[1].Value())
+	return nil, fmt.Errorf("invalid types %T, %T", v[0].Get(), v[1].Get())
 }
 
 func TestRegister(t *testing.T) {
@@ -40,7 +40,7 @@ func TestRegister(t *testing.T) {
 	res, err = executeFunction("fnconcat", String{String: "Hello"}, String{String: "World"})
 	assert.NoError(t, err)
 	assert.IsType(t, String{}, res)
-	assert.Equal(t, "HelloWorld", res.Value().(string))
+	assert.Equal(t, "HelloWorld", res.Get().(string))
 
 	res, err = executeFunction("notexists")
 	assert.Error(t, err)

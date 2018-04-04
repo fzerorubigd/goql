@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testStar = `
@@ -26,6 +27,10 @@ func TestStarType(t *testing.T) {
 	s := tn.def.(*StarType)
 	assert.IsType(t, &IdentType{}, s.Target())
 	assert.Equal(t, "*int", s.String())
+	nd, err := NewDefinition(s.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(s))
+
 	assert.Equal(t, p, s.Package())
 	assert.Equal(t, f, s.File())
 }

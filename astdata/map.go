@@ -32,9 +32,14 @@ func (m *MapType) Key() Definition {
 	return m.key
 }
 
-// Value is the definition of the value type
-func (m *MapType) Value() Definition {
+// Val is the definition of the value type
+func (m *MapType) Val() Definition {
 	return m.value
+}
+
+// Compare try to compare this to def
+func (m *MapType) Compare(def Definition) bool {
+	return m.String() == def.String()
 }
 
 func getMap(p *Package, f *File, t *ast.MapType) Definition {

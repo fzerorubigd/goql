@@ -69,7 +69,7 @@ func TestSelectSimple(t *testing.T) {
 	assert.Equal(t, 0, len(fn3.Parameters))
 
 	q = "SELECT * FROM x where  x (  )"
-	stmt, err = AST(q)
+	_, err = AST(q)
 	assert.NoError(t, err)
 
 	q = "SELECT a,, FROM test"

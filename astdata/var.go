@@ -14,7 +14,8 @@ type Variable struct {
 	name string
 	docs Docs
 
-	def Definition
+	def  Definition
+	elip bool // just for va args in functions
 
 	caller *ast.CallExpr
 	index  int
@@ -100,8 +101,7 @@ func getForeignType(pkg *Package, pkgName string, fl *File, foreignTyp Definitio
 		name := ft.ident
 		c := name[0]
 		if c >= 'A' && c <= 'Z' {
-			var res Definition
-			res = &SelectorType{
+			var res Definition = &SelectorType{
 				selector: pkgName,
 				fl:       fl,
 				pkg:      pkg,
@@ -239,11 +239,18 @@ func newVariable(p *Package, f *File, v *ast.ValueSpec, c *ast.CommentGroup) []*
 }
 
 func newVariableFromExpr(p *Package, f *File, name string, e ast.Expr) *Variable {
-	return &Variable{
-		pkg:  p,
-		fl:   f,
-		name: name,
-		def:  newType(p, f, e),
+	switch t := e.(type) {
+	case *ast.Ellipsis:
+		v := newVariableFromExpr(p, f, name, t.Elt)
+		v.elip = true
+		return v
+	default:
+		return &Variable{
+			pkg:  p,
+			fl:   f,
+			name: name,
+			def:  newType(p, f, e),
+		}
 	}
 
 }

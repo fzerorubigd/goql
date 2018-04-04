@@ -22,7 +22,11 @@ func (f *FuncType) getDefinitionWithName(name string) string {
 func (f *FuncType) Sign() string {
 	var args, res []string
 	for a := range f.parameters {
-		args = append(args, f.parameters[a].def.String())
+		str := f.parameters[a].def.String()
+		if f.parameters[a].elip {
+			str = "..." + str
+		}
+		args = append(args, str)
 	}
 
 	for a := range f.results {
@@ -32,7 +36,7 @@ func (f *FuncType) Sign() string {
 	result := "(" + strings.Join(args, ", ") + ")"
 	if len(res) > 1 {
 		result += " (" + strings.Join(res, ", ") + ")"
-	} else {
+	} else if len(res) == 1 {
 		result += " " + strings.Join(res, ", ")
 	}
 
@@ -62,6 +66,11 @@ func (f *FuncType) Parameters() []*Variable {
 // Results is the result of the functions
 func (f *FuncType) Results() []*Variable {
 	return f.results
+}
+
+// Compare try to compare this to def
+func (f *FuncType) Compare(def Definition) bool {
+	return f.String() == def.String()
 }
 
 func getVariableList(p *Package, fl *File, f *ast.FieldList) []*Variable {

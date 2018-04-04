@@ -38,6 +38,8 @@ goql --package="fmt" "select name from funcs where receiver is not null and name
 
 [![asciicast](https://asciinema.org/a/170483.png)](https://asciinema.org/a/170483)
 
+## TODO
+
 its in alpha stage, there is a long todo list :
 
 - Write documentation

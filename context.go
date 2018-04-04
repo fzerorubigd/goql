@@ -22,13 +22,13 @@ const (
 type field struct {
 	order      int
 	name       string // TODO : support for alias
-	show       bool
 	typ        fieldType
 	staticStr  string // for static column only
 	staticNum  float64
-	staticBool bool
 	copy       int   // for duplicated field, copy from another field
 	argsOrder  []int // for function column only, the order of arguments in the fields list
+	show       bool
+	staticBool bool
 }
 
 type context struct {
@@ -81,7 +81,7 @@ func newItem(t parse.ItemType, v string, p int) parse.Item {
 }
 
 // execute the query
-func execute(c interface{}, src *parse.Query) ([]string, [][]Valuer, error) {
+func execute(c interface{}, src *parse.Query) ([]string, [][]Getter, error) {
 	var err error
 	ctx := &context{pkg: c, q: src}
 
@@ -170,6 +170,7 @@ func getFieldStar(ctx *context) []field {
 	for i := range ctx.definition {
 		res[ctx.definition[i].Order()], _ = getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
 	}
+
 	return res
 }
 
@@ -179,7 +180,7 @@ func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) 
 		return nil, fmt.Errorf("function '%s' is not registered", fl.Item.Value())
 	}
 	f := []field{
-		field{
+		{
 			order: ctx.order,
 			name:  fl.Item.Value(),
 			show:  show,
@@ -317,9 +318,9 @@ func selectColumn(ctx *context) error {
 	return nil
 }
 
-func filterColumn(ctx *context, items ...Valuer) []Valuer {
+func filterColumn(ctx *context, items ...Getter) []Getter {
 	fl := ctx.flds
-	res := make([]Valuer, 0, len(items))
+	res := make([]Getter, 0, len(items))
 	for i := range fl {
 		if fl[i].show {
 			res = append(res, items[i])
@@ -329,32 +330,33 @@ func filterColumn(ctx *context, items ...Valuer) []Valuer {
 	return res
 }
 
-func fillGaps(ctx *context, res []Valuer) error {
+func fillGaps(ctx *context, res []Getter) error {
 	fl := ctx.flds
 	for i := range fl {
 		switch fl[i].typ {
 		case fieldTypeCopy:
-			res[i] = res[fl[i].copy]
+			res[fl[i].order] = res[fl[i].copy]
 		case fieldTypeStaticNumber:
-			res[i] = Number{Number: fl[i].staticNum}
+			res[fl[i].order] = Number{Number: fl[i].staticNum}
 		case fieldTypeStaticString:
-			res[i] = String{String: fl[i].staticStr}
+			res[fl[i].order] = String{String: fl[i].staticStr}
 		case fieldTypeStaticBool:
-			res[i] = Bool{Bool: fl[i].staticBool}
+			res[fl[i].order] = Bool{Bool: fl[i].staticBool}
 		}
 	}
 
 	var err error
 	// once more for functions :/ if there is a way to fill it in one loop :/
 	// TODO : exec this at the getTableFields not after that
-	for i := range fl {
+	// since functions added before its parameter, doing it backward to make sure if a function is argument to another function
+	// is field before
+	for i := len(fl) - 1; i > -1; i-- {
 		if fl[i].typ == fieldTypeFunction {
-			args := make([]Valuer, len(fl[i].argsOrder))
-			for j := range fl[i].argsOrder {
-				args[j] = res[fl[i].argsOrder[j]]
+			args := make([]Getter, len(fl[i].argsOrder))
+			for j, v := range fl[i].argsOrder {
+				args[j] = res[v]
 			}
-
-			res[i], err = executeFunction(fl[i].name, args...)
+			res[fl[i].order], err = executeFunction(fl[i].name, args...)
 			if err != nil {
 				return err
 			}
@@ -364,7 +366,7 @@ func fillGaps(ctx *context, res []Valuer) error {
 	return nil
 }
 
-func callWhere(where getter, i []Valuer) (ok bool, err error) {
+func callWhere(where getter, i []Getter) (ok bool, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("error : %v", e)
@@ -374,18 +376,22 @@ func callWhere(where getter, i []Valuer) (ok bool, err error) {
 	return toBool(where(i)), nil
 }
 
-func doQuery(ctx *context) ([]string, [][]Valuer, error) {
-	res := make(chan []Valuer, 3)
+func doQuery(ctx *context) ([]string, [][]Getter, error) {
+	res := make(chan []Getter, 3)
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 	var all = make([]string, len(ctx.flds))
 	for i := range ctx.flds {
 		// only fields are allowed
 		if ctx.flds[i].typ == fieldTypeColumn {
-			all[i] = ctx.flds[i].name
+			all[ctx.flds[i].order] = ctx.flds[i].name
 		}
 	}
-
-	err := getTableFields(ctx.pkg, ss.Table, res, all...)
+	quit := make(chan struct{}, 1)
+	defer func() {
+		quit <- struct{}{}
+		close(quit) // prevent the channel leak.
+	}()
+	err := getTableFields(ctx.pkg, ss.Table, res, quit, all...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -393,10 +399,9 @@ func doQuery(ctx *context) ([]string, [][]Valuer, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	a := make([][]Valuer, 0)
+	a := make([][]Getter, 0)
 	for i := range res {
 		if err = fillGaps(ctx, i); err != nil {
-			close(res) // prevent the channel leak. TODO : better way
 			return nil, nil, err
 		}
 		ok, err := callWhere(where, i)
@@ -428,7 +433,7 @@ func doQuery(ctx *context) ([]string, [][]Valuer, error) {
 	if ss.Count >= 0 && ss.Start >= 0 {
 		l := len(a)
 		if ss.Start >= l {
-			a = [][]Valuer{}
+			a = [][]Getter{}
 		} else if ss.Start+ss.Count >= l {
 			a = a[ss.Start:] // to the end
 		} else {

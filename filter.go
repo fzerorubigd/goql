@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fzerorubigd/goql/astdata"
 	"github.com/fzerorubigd/goql/parse"
 )
 
@@ -16,7 +17,7 @@ const (
 
 type (
 	null       int
-	getter     func([]Valuer) interface{}
+	getter     func([]Getter) interface{}
 	opGetter   func(getter, getter) getter
 	operGetter func(parse.Item) getter
 )
@@ -72,7 +73,7 @@ func assertType(t parse.Item, tp ...parse.ItemType) {
 
 func nullGetterGenerator(t parse.Item) getter {
 	assertType(t, parse.ItemNull)
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		return nullValue
 	}
 }
@@ -80,7 +81,7 @@ func nullGetterGenerator(t parse.Item) getter {
 func boolGetterGenerator(t parse.Item) getter {
 	assertType(t, parse.ItemTrue, parse.ItemFalse)
 	res := t.Type() == parse.ItemTrue
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		return res
 	}
 }
@@ -88,7 +89,7 @@ func boolGetterGenerator(t parse.Item) getter {
 func fieldGetterGenerator(t parse.Item) getter {
 	assertType(t, itemColumn)
 	var idx = t.Pos()
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		switch t := in[idx].(type) {
 		case String:
 			if t.Null {
@@ -105,7 +106,8 @@ func fieldGetterGenerator(t parse.Item) getter {
 				return nullValue
 			}
 			return t.Number
-
+		case Definition:
+			return t.Definition
 		}
 		return in[idx]
 	}
@@ -114,7 +116,7 @@ func fieldGetterGenerator(t parse.Item) getter {
 func literal1GetterGenerator(t parse.Item) getter {
 	assertType(t, parse.ItemLiteral1)
 	var v = parse.GetTokenString(t)
-	return func([]Valuer) interface{} {
+	return func([]Getter) interface{} {
 		return v
 	}
 }
@@ -122,41 +124,59 @@ func literal1GetterGenerator(t parse.Item) getter {
 func numberGetterGenerator(t parse.Item) getter {
 	assertType(t, parse.ItemNumber)
 	v, _ := strconv.ParseFloat(t.Value(), 10)
-	return func([]Valuer) interface{} {
+	return func([]Getter) interface{} {
 		return v
 	}
 }
 
 func equal(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := r(in)
-		return lv == castAsLeft(lv, rv)
+		switch t := lv.(type) {
+		case astdata.Definition:
+			def := toDefinition(rv)
+			if t == nil || def == nil {
+				return t == def
+			}
+			return t.Compare(toDefinition(rv))
+		default:
+			return lv == castAsLeft(lv, rv)
+		}
 	}
 }
 
 func notEqual(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := r(in)
-		return lv != castAsLeft(lv, rv)
+		switch t := lv.(type) {
+		case astdata.Definition:
+			def := toDefinition(rv)
+			if t == nil || def == nil {
+				return t != def
+			}
+			return !t.Compare(toDefinition(rv))
+		default:
+			return lv != castAsLeft(lv, rv)
+		}
 	}
 }
 
 func operOr(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		return toBool(l(in)) || toBool(r(in))
 	}
 }
 
 func operAnd(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		return toBool(l(in)) && toBool(r(in))
 	}
 }
 
 func operGreater(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -169,6 +189,8 @@ func operGreater(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) > 0
 		case float64:
 			return lv.(float64) > rv.(float64)
+		case astdata.Definition:
+			return false // definition dose not support this operators
 		case null:
 			return lv.(null) > rv.(null)
 		}
@@ -177,7 +199,7 @@ func operGreater(l getter, r getter) getter {
 }
 
 func operGreaterEqual(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -190,6 +212,8 @@ func operGreaterEqual(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) >= 0
 		case float64:
 			return lv.(float64) >= rv.(float64)
+		case astdata.Definition:
+			return false // definition dose not support this operators
 		case null:
 			return lv.(null) >= rv.(null)
 		}
@@ -198,7 +222,7 @@ func operGreaterEqual(l getter, r getter) getter {
 }
 
 func operLesser(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -211,6 +235,8 @@ func operLesser(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) < 0
 		case float64:
 			return lv.(float64) < rv.(float64)
+		case astdata.Definition:
+			return false // definition dose not support this operators
 		case null:
 			return lv.(null) < rv.(null)
 		}
@@ -219,7 +245,7 @@ func operLesser(l getter, r getter) getter {
 }
 
 func operLesserEqual(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		lv := l(in)
 		rv := castAsLeft(lv, r(in))
 		switch lv.(type) {
@@ -232,6 +258,8 @@ func operLesserEqual(l getter, r getter) getter {
 			return strings.Compare(lv.(string), rv.(string)) <= 0
 		case float64:
 			return lv.(float64) <= rv.(float64)
+		case astdata.Definition:
+			return false // definition dose not support this operators
 		case null:
 			return lv.(null) <= rv.(null)
 		}
@@ -241,7 +269,7 @@ func operLesserEqual(l getter, r getter) getter {
 
 func operIs(l getter, r getter) getter {
 	// TODO : there is a problem, if he right operand is a column with null value it works here :)
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		v := r(in)
 		n, ok := v.(null)
 		if !ok {
@@ -252,7 +280,7 @@ func operIs(l getter, r getter) getter {
 }
 
 func operLike(l getter, r getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		re := likeStr(toString(r(in))).regexp()
 		v := toString(l(in))
 		return re.MatchString(v)
@@ -260,7 +288,7 @@ func operLike(l getter, r getter) getter {
 }
 
 func operNot(l getter) getter {
-	return func(in []Valuer) interface{} {
+	return func(in []Getter) interface{} {
 		d := l(in)
 		switch t := d.(type) {
 		case bool:
@@ -271,7 +299,7 @@ func operNot(l getter) getter {
 			}
 			return notNullValue
 		default:
-			panic("not is not applicable for string or number")
+			panic("not is not applicable for string or number or definition")
 		}
 	}
 }
@@ -284,6 +312,8 @@ func castAsLeft(l, r interface{}) interface{} {
 		return toNumber(r)
 	case string:
 		return toString(r)
+	case astdata.Definition:
+		return toDefinition(r)
 	case null:
 		return toNull(r)
 	}
@@ -299,8 +329,12 @@ func toBool(in interface{}) bool {
 		return b
 	case float64:
 		return t != 0
+	case astdata.Definition:
+		return t != nil
 	case null:
 		return t != nullValue
+	case nil:
+		return false
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -317,8 +351,12 @@ func toNumber(in interface{}) float64 {
 		return f
 	case float64:
 		return t
+	case astdata.Definition:
+		return 0
 	case null:
 		return float64(t)
+	case nil:
+		return 0
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -331,6 +369,26 @@ func toString(in interface{}) string {
 		return t
 	case float64:
 		return fmt.Sprint(t)
+	case astdata.Definition:
+		return t.String()
+	case nil:
+		return ""
+	}
+	panic(fmt.Sprintf("result from type %T", in))
+}
+
+func toDefinition(in interface{}) astdata.Definition {
+	switch t := in.(type) {
+	case bool, float64, nil:
+		return nil
+	case string:
+		def, err := astdata.NewDefinition(t)
+		if err != nil {
+			return nil
+		}
+		return def
+	case astdata.Definition:
+		return t
 	}
 	panic(fmt.Sprintf("result from type %T", in))
 }
@@ -343,6 +401,10 @@ func toNull(in interface{}) null {
 		return notNullValue
 	case float64:
 		return notNullValue
+	case astdata.Definition:
+		return notNullValue
+	case nil:
+		return nullValue
 	case null:
 		return t
 	}
@@ -388,7 +450,7 @@ func buildFilter(w parse.Stack) (getter, error) {
 	)
 	t, err := w.Pop()
 	if err != nil {
-		return func([]Valuer) interface{} {
+		return func([]Getter) interface{} {
 			return true
 		}, nil
 	}

@@ -40,6 +40,7 @@ func registerConstant() {
 	RegisterField("consts", "file", genericFileName{})
 	RegisterField("consts", "exported", genericIsExported{})
 	RegisterField("consts", "docs", genericDoc{})
+	RegisterField("consts", "def", genericDefinition{})
 }
 
 func init() {

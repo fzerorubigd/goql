@@ -10,11 +10,11 @@ import (
 
 type unknown struct{}
 
-func (u unknown) Value() interface{} {
+func (u unknown) Get() interface{} {
 	return u // invalid type
 }
 
-var sortData = [][]Valuer{
+var sortData = [][]Getter{
 	{
 		Number{Number: 0},
 		Bool{Bool: true},
@@ -57,10 +57,10 @@ var sortData = [][]Valuer{
 	},
 }
 
-func order(in [][]Valuer) []float64 {
+func order(in [][]Getter) []float64 {
 	res := make([]float64, len(in))
 	for i := range in {
-		res[i] = in[i][0].Value().(float64)
+		res[i] = in[i][0].Get().(float64)
 	}
 
 	return res

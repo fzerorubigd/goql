@@ -20,6 +20,10 @@ type docer interface {
 	Docs() astdata.Docs
 }
 
+type definithioner interface {
+	Definition() astdata.Definition
+}
+
 type genericFileName struct {
 }
 
@@ -70,4 +74,12 @@ func (genericDoc) Value(in interface{}) String {
 		return String{Null: true}
 	}
 	return String{String: p.String()}
+}
+
+type genericDefinition struct {
+}
+
+func (genericDefinition) Value(in interface{}) Definition {
+	def := in.(definithioner).Definition()
+	return Definition{Definition: def}
 }

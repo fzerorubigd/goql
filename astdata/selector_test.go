@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testSel = `
@@ -46,4 +47,8 @@ func TestSelectorType(t *testing.T) {
 	assert.Equal(t, p, sel.Package())
 	assert.Equal(t, "Context", sel.Ident())
 	assert.Equal(t, "context.Context", sel.String())
+	nd, err := NewDefinition(v1.String())
+	require.NoError(t, err)
+	assert.True(t, nd.Compare(v1))
+
 }

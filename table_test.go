@@ -15,44 +15,54 @@ func (nilProvider) Provide(in interface{}) []interface{} {
 }
 
 func TestTables(t *testing.T) {
+	quit := make(chan struct{}, 1)
+
 	RegisterTable("test1", provider{})
 
 	RegisterField("test1", "c1", c1{})
 	RegisterField("test1", "c2", c2{})
 	RegisterField("test1", "c3", c3{})
+	RegisterField("test1", "c4", c4{})
 
 	tt, err := getTable("not-exists")
 	assert.Error(t, err)
 	assert.Nil(t, tt)
 
-	tbl, err := getTable("test")
+	tbl, err := getTable("test1")
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(tbl))
+	assert.Equal(t, 4, len(tbl))
 	assert.Equal(t, 0, tbl["c1"].Order())
 	assert.Equal(t, 1, tbl["c2"].Order())
 	assert.Equal(t, 2, tbl["c3"].Order())
+	assert.Equal(t, 3, tbl["c4"].Order())
 
 	assert.Equal(t, ValueTypeNumber, tbl["c1"].Type())
 	assert.Equal(t, ValueTypeString, tbl["c2"].Type())
 	assert.Equal(t, ValueTypeBool, tbl["c3"].Type())
+	assert.Equal(t, ValueTypeDefinition, tbl["c4"].Type())
 
-	res := make(chan []Valuer, 3)
+	res := make(chan []Getter, 3)
 
-	err = getTableFields(tablet(1), "test1", res, "c1", "c2", "c3")
+	err = getTableFields(tablet(1), "test1", res, quit, "c1", "c2", "c3", "c4")
 	assert.NoError(t, err)
 
 	var cnt int64
 	for i := range res {
-		assert.Equal(t, 3, len(i))
+		assert.Equal(t, 4, len(i))
 		assert.Equal(t, float64(cnt*2), i[0].(Number).Number)
 		assert.Equal(t, fmt.Sprintf("%dth row", cnt), i[1].(String).String)
 		assert.Equal(t, cnt%2 == 0, i[2].(Bool).Bool)
+		if cnt%2 == 0 {
+			assert.Equal(t, "int", i[3].(Definition).Definition.String())
+		} else {
+			assert.Equal(t, "string", i[3].(Definition).Definition.String())
+		}
 		cnt++
 	}
 
-	res = make(chan []Valuer, 3)
+	res = make(chan []Getter, 3)
 
-	err = getTableFields(tablet(1), "test1", res, "c2", "c3")
+	err = getTableFields(tablet(1), "test1", res, quit, "c2", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -63,8 +73,8 @@ func TestTables(t *testing.T) {
 		cnt++
 	}
 
-	res = make(chan []Valuer, 3)
-	err = getTableFields(tablet(1), "test1", res, "c2", "", "c3")
+	res = make(chan []Getter, 3)
+	err = getTableFields(tablet(1), "test1", res, quit, "c2", "", "c3")
 	assert.NoError(t, err)
 
 	cnt = 0
@@ -81,32 +91,32 @@ func TestTables(t *testing.T) {
 	assert.Panics(t, func() { RegisterField("test1", "c1", c1{}) })
 	assert.Panics(t, func() { RegisterField("test1", "c11", 10) })
 
-	assert.Error(t, getTableFields(1, "not-exist", res, "col"))
-	assert.Error(t, getTableFields(1, "test1", res, "col"))
-	assert.Error(t, getTableFields(1, "test1", res))
+	assert.Error(t, getTableFields(1, "not-exist", res, quit, "col"))
+	assert.Error(t, getTableFields(1, "test1", res, quit, "col"))
+	assert.Error(t, getTableFields(1, "test1", res, quit))
 }
 
 func TestTypes(t *testing.T) {
 	b := Bool{}
-	assert.Equal(t, false, b.Value())
+	assert.Equal(t, false, b.Get())
 	b.Bool = true
-	assert.Equal(t, true, b.Value())
+	assert.Equal(t, true, b.Get())
 	b.Null = true
-	assert.Nil(t, b.Value())
+	assert.Nil(t, b.Get())
 
 	n := Number{}
-	assert.Equal(t, 0.0, n.Value())
+	assert.Equal(t, 0.0, n.Get())
 	n.Number = 10.0
-	assert.Equal(t, 10.0, n.Value())
+	assert.Equal(t, 10.0, n.Get())
 	n.Null = true
-	assert.Nil(t, n.Value())
+	assert.Nil(t, n.Get())
 
 	s := String{}
-	assert.Equal(t, "", s.Value())
+	assert.Equal(t, "", s.Get())
 	s.String = "test"
-	assert.Equal(t, "test", s.Value())
+	assert.Equal(t, "test", s.Get())
 	s.Null = true
-	assert.Nil(t, s.Value())
+	assert.Nil(t, s.Get())
 
 	cd := columnDef{
 		typ: 10,

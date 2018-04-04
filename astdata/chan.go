@@ -9,7 +9,9 @@ import (
 type ChanDir int
 
 const (
+	// SEND is send only channel
 	SEND ChanDir = 1 << iota
+	// RECV is the receive only channel
 	RECV
 )
 
@@ -53,6 +55,11 @@ func (c *ChannelType) Direction() ChanDir {
 // ValueDefinition return the definition of the type in channel
 func (c *ChannelType) ValueDefinition() Definition {
 	return c.def
+}
+
+// Compare try to compare this to def
+func (c *ChannelType) Compare(def Definition) bool {
+	return c.String() == def.String()
 }
 
 func getChannel(p *Package, f *File, t *ast.ChanType) Definition {

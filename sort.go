@@ -9,7 +9,7 @@ import (
 // sortMe is a type to order data based on order sql statement.
 type sortMe struct {
 	order parse.Orders
-	data  [][]Valuer
+	data  [][]Getter
 }
 
 func (s *sortMe) Len() int {
@@ -75,7 +75,7 @@ func (s *sortMe) Less(i int, j int) bool {
 	ii := s.data[i]
 	ij := s.data[j]
 	for o := range s.order {
-		res := interfaceLess(ii[s.order[o].Index].Value(), ij[s.order[o].Index].Value(), s.order[o].DESC)
+		res := interfaceLess(ii[s.order[o].Index].Get(), ij[s.order[o].Index].Get(), s.order[o].DESC)
 		if res < 0 {
 			return false
 		} else if res > 0 {

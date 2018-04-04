@@ -1,6 +1,8 @@
 package astdata
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 // IdentType is the normal type name
 type IdentType struct {
@@ -27,6 +29,11 @@ func (i *IdentType) File() *File {
 // Ident is the ident of this type
 func (i *IdentType) Ident() string {
 	return i.ident
+}
+
+// Compare try to compare this to def
+func (i *IdentType) Compare(def Definition) bool {
+	return i.String() == def.String()
 }
 
 func getIdent(p *Package, f *File, t *ast.Ident) Definition {
