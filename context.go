@@ -168,7 +168,11 @@ func getFieldColumn(ctx *context, fl parse.Field, show bool) (field, error) {
 func getFieldStar(ctx *context) []field {
 	res := make([]field, len(ctx.definition))
 	for i := range ctx.definition {
-		res[ctx.definition[i].Order()], _ = getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
+		// the order in * is based on order in definition, so fix it
+		f, _ := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
+		f.order = ctx.definition[i].Order()
+		ctx.selected[f.name] = f.order
+		res[f.order] = f
 	}
 
 	return res
@@ -308,7 +312,6 @@ func selectColumn(ctx *context) error {
 	ctx.flds = append(ctx.flds, fl...)
 
 	// where fields
-
 	ctx.where, fl, err = getWhereField(ctx)
 	if err != nil {
 		return err
@@ -337,11 +340,11 @@ func fillGaps(ctx *context, res []Getter) error {
 		case fieldTypeCopy:
 			res[fl[i].order] = res[fl[i].copy]
 		case fieldTypeStaticNumber:
-			res[fl[i].order] = Number{Number: fl[i].staticNum}
+			res[i] = Number{Number: fl[i].staticNum}
 		case fieldTypeStaticString:
-			res[fl[i].order] = String{String: fl[i].staticStr}
+			res[i] = String{String: fl[i].staticStr}
 		case fieldTypeStaticBool:
-			res[fl[i].order] = Bool{Bool: fl[i].staticBool}
+			res[i] = Bool{Bool: fl[i].staticBool}
 		}
 	}
 
@@ -383,7 +386,7 @@ func doQuery(ctx *context) ([]string, [][]Getter, error) {
 	for i := range ctx.flds {
 		// only fields are allowed
 		if ctx.flds[i].typ == fieldTypeColumn {
-			all[ctx.flds[i].order] = ctx.flds[i].name
+			all[i] = ctx.flds[i].name
 		}
 	}
 	quit := make(chan struct{}, 1)
