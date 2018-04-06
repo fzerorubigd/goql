@@ -8,30 +8,70 @@ A query language, over Go code, in Go!
 
 *This package is under heavy development, anything may change!*
 
-This is a subset of sql, over Golang code. the idea is to interact with Go code in sql. the tables are dynamic and adding column/table is possible.
+This is a golang sql driver, to interact with Go code. currently only select is possible, but the insert/update/delete is in todo list.
 
-## What is this?
+## Usage 
 
+like any other sql driver in golang, just import the goql package in your code : 
+
+```go
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+
+	_ "github.com/fzerorubigd/goql"
+)
+
+func main() {
+	// open the net/http package
+	con, err := sql.Open("goql", "net/http")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer con.Close()
+
+	rows, err := con.Query("SELECT name, receiver, def FROM funcs")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for rows.Next() {
+		var (
+			name string
+			rec  sql.NullString
+			def  string
+		)
+		rows.Scan(&name, &rec, &def)
+		if rec.Valid {
+			name = rec.String + "." + name
+		}
+		fmt.Printf("\nfunc %s , definition : %s", name, def)
+	}
+
+}
 ```
-go get -u github.com/fzerorubigd/goql/...
 
-```
+Also there is an example command line is available for more advanced usage in `cmd/goql` by running `go get -u github.com/fzerorubigd/goql/...` the binary is available in your `GOBIN` directory. you can run query against any installed package in your `GOPATH` via this tool.
 
-A test command line is built in your GOBIN directory 
+List of supported tables and fields are available in [docs/table](docs/tables.md)
 
-```
-goql --package="fmt" "select * from file"
-goql --package="fmt" "select * from funcs"
-goql --package="fmt" "select * from consts"
-goql --package="fmt" "select * from vars"
-goql --package="fmt" "select * from types"
-goql --package="fmt" "select * from imports"
-```
+there is one special type called `definition`. this type is printed as string, but one can use functions to handle special queries. list of supported functions are available at [docs/functions](docs/functions.md) 
 
-also some operators are available: 
+also its possible to add new tables/fields/functions using plugins. an example plugin is available at [plugin/goqlimport](plugin/goqlimport/reg_import.go)
 
-```
-goql --package="fmt" "select name from funcs where receiver is not null and name like '%print' order by name desc limit 10,1"
+currently only supported query is `select` , with `where`,`order` and `limit` some example query : 
+
+
+```sql
+select * from files where the docs is not null
+select * from funcs where def = 'func()' and exported
+select * from consts order by name desc limit 10, 10
+select * from vars where is_struct(def) and name like 's%'
+select * from types where is_map(def) and map_key(def) = 'string'
+select * from imports where canonical = 'ctx'
 ```
 
 ## Demo 
@@ -40,8 +80,5 @@ goql --package="fmt" "select name from funcs where receiver is not null and name
 
 ## TODO
 
-its in alpha stage, there is a long todo list :
-
-- Write documentation
-- Definition type and operator 
-- UPDATE/INSERT/DELETE support (Yes, code generation with sql)
+- Write (more) documentation
+- UPDATE/INSERT/DELETE support (Yes, code generation with sql :) )
