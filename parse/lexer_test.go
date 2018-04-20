@@ -150,6 +150,19 @@ func TestAlpha(t *testing.T) {
 	}
 }
 
+func TestParameters(t *testing.T) {
+	l := lex("? ?")
+	p := l.nextItem()
+	assert.Equal(t, ItemQuestionMark, p.Type())
+	assert.Equal(t, 1, p.Data())
+	p = l.nextItem()
+	assert.Equal(t, ItemWhiteSpace, p.Type())
+	p = l.nextItem()
+	assert.Equal(t, ItemQuestionMark, p.Type())
+	assert.Equal(t, 2, p.Data())
+
+}
+
 func TestMisc(t *testing.T) {
 	w := item{
 		typ: ItemAlpha,

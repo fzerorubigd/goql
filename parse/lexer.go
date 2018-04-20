@@ -87,6 +87,8 @@ const (
 	ItemSemicolon
 	// ItemDot is .
 	ItemDot
+	// ItemDollarSign is the $ followed by the number
+	ItemQuestionMark
 	// ItemFunc is the function
 	ItemFunc
 )
@@ -119,12 +121,14 @@ type Item interface {
 	Type() ItemType
 	Pos() int
 	Value() string
+	Data() int
 }
 
 type item struct {
 	typ   ItemType
 	pos   int
 	value string
+	data  int
 }
 
 func (i item) Type() ItemType {
@@ -137,6 +141,10 @@ func (i item) Pos() int {
 
 func (i item) Value() string {
 	return i.value
+}
+
+func (i item) Data() int {
+	return i.data
 }
 
 func (i item) String() string {
@@ -161,6 +169,7 @@ type lexer struct {
 	items chan item
 
 	parenDepth int
+	qIndex     int
 }
 
 func (l *lexer) next() rune {
@@ -188,7 +197,12 @@ func (l *lexer) backup() {
 
 // emit passes an item back to the client.
 func (l *lexer) emit(t ItemType) {
-	l.items <- item{t, l.start, l.input[l.start:l.pos]}
+	data := 0
+	if t == ItemQuestionMark {
+		l.qIndex++
+		data = l.qIndex
+	}
+	l.items <- item{t, l.start, l.input[l.start:l.pos], data}
 	// Some items contain text internally. If so, count their newlines.
 	l.start = l.pos
 }
@@ -203,7 +217,7 @@ func (l *lexer) acceptRun(valid string) {
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items <- item{ItemError, l.start, fmt.Sprintf(format, args...)}
+	l.items <- item{ItemError, l.start, fmt.Sprintf(format, args...), 0}
 	return nil
 }
 
@@ -273,6 +287,8 @@ func lexStart(l *lexer) stateFn {
 		return lexWildCard
 	case r == '.':
 		return lexDot
+	case r == '?':
+		return lexParameter
 	default:
 		return l.errorf("invalid character %c", r)
 	}
@@ -309,6 +325,12 @@ func lexOp(l *lexer) stateFn {
 		t = ItemEqual
 	}
 	l.emit(t)
+	return lexStart
+}
+
+func lexParameter(l *lexer) stateFn {
+	l.next()
+	l.emit(ItemQuestionMark)
 	return lexStart
 }
 

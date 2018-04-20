@@ -24,12 +24,13 @@ type (
 
 var (
 	operGetterMap = map[parse.ItemType]operGetter{
-		itemColumn:         fieldGetterGenerator,
-		parse.ItemLiteral1: literal1GetterGenerator,
-		parse.ItemNumber:   numberGetterGenerator,
-		parse.ItemNull:     nullGetterGenerator,
-		parse.ItemTrue:     boolGetterGenerator,
-		parse.ItemFalse:    boolGetterGenerator,
+		itemColumn:             fieldGetterGenerator,
+		parse.ItemLiteral1:     literal1GetterGenerator,
+		parse.ItemNumber:       numberGetterGenerator,
+		parse.ItemNull:         nullGetterGenerator,
+		parse.ItemTrue:         boolGetterGenerator,
+		parse.ItemFalse:        boolGetterGenerator,
+		parse.ItemQuestionMark: parameterGetterGenerator,
 	}
 
 	opGetterMap = map[parse.ItemType]opGetter{
@@ -58,6 +59,10 @@ func (g getter) Value() string {
 	return ""
 }
 
+func (g getter) Data() int {
+	return 0
+}
+
 func (g getter) String() string {
 	return ""
 }
@@ -69,6 +74,16 @@ func assertType(t parse.Item, tp ...parse.ItemType) {
 		}
 	}
 	panic("runtime error")
+}
+
+func parameterGetterGenerator(t parse.Item) getter {
+	assertType(t, parse.ItemQuestionMark)
+	return func(in []Getter) interface{} {
+		for i := range in {
+			fmt.Println(in[i].Get())
+		}
+		return nullValue
+	}
 }
 
 func nullGetterGenerator(t parse.Item) getter {
@@ -88,7 +103,7 @@ func boolGetterGenerator(t parse.Item) getter {
 
 func fieldGetterGenerator(t parse.Item) getter {
 	assertType(t, itemColumn)
-	var idx = t.Pos()
+	var idx = t.Data()
 	return func(in []Getter) interface{} {
 		switch t := in[idx].(type) {
 		case String:
@@ -428,7 +443,6 @@ func getGetter(t parse.Item) getter {
 	if g, ok := t.(getter); ok {
 		return g
 	}
-
 	m, ok := operGetterMap[t.Type()]
 	if !ok {
 		panic(fmt.Sprintf("%+v is not belong here", t))
@@ -444,7 +458,7 @@ func getOpGetter(op parse.Item, lg, rg getter) getter {
 	return m(lg, rg)
 }
 
-func buildFilter(w parse.Stack) (getter, error) {
+func buildFilter(w parse.Stack, params ...interface{}) (getter, error) {
 	var (
 		p = parse.NewStack(0)
 	)

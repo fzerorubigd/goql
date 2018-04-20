@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSelectSimple(t *testing.T) {
@@ -111,7 +112,7 @@ func pop(t *testing.T, stack Stack) Item {
 }
 
 func TestSelectWhere(t *testing.T) {
-	q := "SELECT * FROM test WHERE id = 2 "
+	q := "SELECT * FROM test WHERE id = 2  "
 	stmt, err := AST(q)
 	assert.NoError(t, err)
 	assert.IsType(t, &SelectStmt{}, stmt.Statement)
@@ -136,7 +137,7 @@ func TestSelectWhere(t *testing.T) {
 	_, err = ss.Where.Pop()
 	assert.Error(t, err)
 
-	q = "SELECT * FROM test WHERE a like '%ss%' and x or not s or (x is not null)"
+	q = "SELECT * FROM test WHERE a like '%ss%' and x or not s or (x is not null) and xx = ?"
 	stmt, err = AST(q)
 	assert.NoError(t, err)
 	assert.IsType(t, &SelectStmt{}, stmt.Statement)
@@ -280,5 +281,18 @@ func TestSelectLimit(t *testing.T) {
 	stmt, err = AST(q)
 	assert.Error(t, err)
 	assert.Nil(t, stmt)
+
+}
+
+func TestParamCount(t *testing.T) {
+	q := "SELECT ? FROM test where id = ?"
+	stmt, err := AST(q)
+	require.NoError(t, err)
+	assert.Equal(t, 2, stmt.Statement.(*SelectStmt).ParamCount())
+
+	q = "SELECT x, ? , func(?,?) FROM test where id = ? and fn(?)"
+	stmt, err = AST(q)
+	require.NoError(t, err)
+	assert.Equal(t, 5, stmt.Statement.(*SelectStmt).ParamCount())
 
 }

@@ -43,11 +43,21 @@ func isOperand(t ItemType) bool {
 		t == ItemLiteral1 ||
 		t == ItemLiteral2 ||
 		t == ItemNot ||
-		t == ItemNull
+		t == ItemNull ||
+		t == ItemQuestionMark
 }
 
 func isKeyword(t ItemType) bool {
 	return t == ItemOrder || t == ItemLimit || t == ItemEOF
+}
+
+func isStatic(t ItemType) bool {
+	return t == ItemNumber ||
+		t == ItemTrue ||
+		t == ItemFalse ||
+		t == ItemNull ||
+		t == ItemLiteral1 ||
+		t == ItemQuestionMark
 }
 
 func parseField(p *parser) (Field, error) {
@@ -55,7 +65,6 @@ func parseField(p *parser) (Field, error) {
 	if token.typ == ItemWildCard {
 		return Field{Item: token}, nil
 	}
-
 	if token.typ == ItemAlpha {
 		ahead := p.scanIgnoreWhiteSpace()
 		if ahead.typ == ItemParenOpen {
@@ -107,8 +116,7 @@ func parseField(p *parser) (Field, error) {
 			},
 		}, nil
 	}
-
-	if token.typ == ItemNumber || token.typ == ItemTrue || token.typ == ItemFalse || token.typ == ItemNull || token.typ == ItemLiteral1 {
+	if isStatic(token.typ) {
 		return Field{
 			Item: token,
 		}, nil
@@ -133,7 +141,6 @@ func parseFields(p *parser, fn bool) (Fields, error) {
 			return nil, err
 		}
 		res = append(res, field)
-
 		comma := p.scanIgnoreWhiteSpace()
 		if comma.typ != ItemComma {
 			p.reject()
@@ -164,11 +171,15 @@ func (ss *SelectStmt) parse(p *parser) error {
 
 	if w := p.scanIgnoreWhiteSpace(); w.typ == ItemWhere {
 		p.reject()
-		var err error
+		var (
+			err error
+			arg int
+		)
 		ss.Where, err = p.where()
 		if err != nil {
 			return err
 		}
+		ss.pc += arg
 	} else {
 		p.reject()
 	}
@@ -227,6 +238,7 @@ func (p *parser) operand(ahead item, op, final Stack, expected int) (int, error)
 	if expected|whereAlpha != expected && expected|whereStart != expected {
 		return 0, fmt.Errorf("not expected operand but got %s", ahead)
 	}
+
 	not := expected|whereNotOp == expected
 	if ahead.typ == ItemNot {
 		if not {
@@ -244,6 +256,7 @@ func (p *parser) operand(ahead item, op, final Stack, expected int) (int, error)
 		assertTrue(err == nil && top.Type() == ItemNot, "why")
 		final.Push(top)
 	}
+
 	return expected, nil
 }
 
@@ -312,7 +325,6 @@ func (p *parser) where() (Stack, error) {
 
 	op := NewStack(0)
 	final := NewStack(0)
-
 	var expected = whereStart
 bigLoop:
 	for {
@@ -331,11 +343,11 @@ bigLoop:
 			}
 		case isOperand(ahead.typ):
 			var err error
+
 			expected, err = p.operand(ahead, op, final, expected)
 			if err != nil {
 				return nil, err
 			}
-
 		case ahead.typ == ItemParenOpen:
 			var err error
 			expected, err = p.parenOpen(ahead, op, final, expected)

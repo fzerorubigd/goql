@@ -30,27 +30,27 @@ func newGetter(in interface{}) getter {
 
 func TestWhereOp(t *testing.T) {
 	//null
-	assert.Panics(t, func() { nullGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
-	assert.Equal(t, nullValue, nullGetterGenerator(newItem(parse.ItemNull, "", 0))(nil))
+	assert.Panics(t, func() { nullGetterGenerator(newItem(parse.ItemEOF, "", 0, 0)) })
+	assert.Equal(t, nullValue, nullGetterGenerator(newItem(parse.ItemNull, "", 0, 0))(nil))
 
 	// field
-	assert.Panics(t, func() { fieldGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
-	assert.Equal(t, 1.0, fieldGetterGenerator(newItem(itemColumn, "", 0))(rowTest))
-	assert.Equal(t, true, fieldGetterGenerator(newItem(itemColumn, "", 1))(rowTest))
-	assert.Equal(t, "a", fieldGetterGenerator(newItem(itemColumn, "", 2))(rowTest))
-	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 3))(rowTest))
-	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 4))(rowTest))
-	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 5))(rowTest))
-	assert.Equal(t, &astdata.IdentType{}, fieldGetterGenerator(newItem(itemColumn, "", 6))(rowTest))
-	assert.Equal(t, unknown{}, fieldGetterGenerator(newItem(itemColumn, "", 7))(rowTest))
+	assert.Panics(t, func() { fieldGetterGenerator(newItem(parse.ItemEOF, "", 0, 0)) })
+	assert.Equal(t, 1.0, fieldGetterGenerator(newItem(itemColumn, "", 0, 0))(rowTest))
+	assert.Equal(t, true, fieldGetterGenerator(newItem(itemColumn, "", 0, 1))(rowTest))
+	assert.Equal(t, "a", fieldGetterGenerator(newItem(itemColumn, "", 0, 2))(rowTest))
+	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 0, 3))(rowTest))
+	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 0, 4))(rowTest))
+	assert.Equal(t, nullValue, fieldGetterGenerator(newItem(itemColumn, "", 0, 5))(rowTest))
+	assert.Equal(t, &astdata.IdentType{}, fieldGetterGenerator(newItem(itemColumn, "", 0, 6))(rowTest))
+	assert.Equal(t, unknown{}, fieldGetterGenerator(newItem(itemColumn, "", 0, 7))(rowTest))
 
 	// litteral
-	assert.Panics(t, func() { literal1GetterGenerator(newItem(parse.ItemEOF, "", 0)) })
-	assert.Equal(t, "test", literal1GetterGenerator(newItem(parse.ItemLiteral1, "'test'", 0))(nil))
+	assert.Panics(t, func() { literal1GetterGenerator(newItem(parse.ItemEOF, "", 0, 0)) })
+	assert.Equal(t, "test", literal1GetterGenerator(newItem(parse.ItemLiteral1, "'test'", 0, 0))(nil))
 
 	// Number
-	assert.Panics(t, func() { numberGetterGenerator(newItem(parse.ItemEOF, "", 0)) })
-	assert.Equal(t, 42.42, numberGetterGenerator(newItem(parse.ItemNumber, "42.42", 0))(nil))
+	assert.Panics(t, func() { numberGetterGenerator(newItem(parse.ItemEOF, "", 0, 0)) })
+	assert.Equal(t, 42.42, numberGetterGenerator(newItem(parse.ItemNumber, "42.42", 0, 0))(nil))
 
 	// equal
 	intIdent, err := astdata.NewDefinition("int")
@@ -174,8 +174,8 @@ func TestWhereOp(t *testing.T) {
 	assert.Panics(t, func() { toDefinition(struct{}{}) })
 
 	// getter
-	assert.Panics(t, func() { getGetter(newItem(parse.ItemEOF, "", 0)) })
-	assert.Panics(t, func() { getOpGetter(newItem(parse.ItemEOF, "", 0), newGetter(1.0), newGetter(1.0)) })
+	assert.Panics(t, func() { getGetter(newItem(parse.ItemEOF, "", 0, 0)) })
+	assert.Panics(t, func() { getOpGetter(newItem(parse.ItemEOF, "", 0, 0), newGetter(1.0), newGetter(1.0)) })
 
 	assert.Equal(t, 0, newGetter("string").Pos())
 	assert.Equal(t, "", newGetter("string").Value())
