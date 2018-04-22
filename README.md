@@ -23,6 +23,7 @@ import (
 	"log"
 
 	_ "github.com/fzerorubigd/goql"
+	"github.com/fzerorubigd/goql/astdata"
 )
 
 func main() {
@@ -42,16 +43,17 @@ func main() {
 		var (
 			name string
 			rec  sql.NullString
-			def  string
+			def  astdata.Definition
 		)
 		rows.Scan(&name, &rec, &def)
 		if rec.Valid {
 			name = rec.String + "." + name
 		}
-		fmt.Printf("\nfunc %s , definition : %s", name, def)
+		fmt.Printf("\nfunc %s , definition : %s", name, def.String())
 	}
 
 }
+
 ```
 
 Also there is an example command line is available for more advanced usage in `cmd/goql` by running `go get -u github.com/fzerorubigd/goql/...` the binary is available in your `GOBIN` directory. you can run query against any installed package in your `GOPATH` via this tool.

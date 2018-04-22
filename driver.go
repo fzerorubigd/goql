@@ -92,9 +92,6 @@ func (r *rows) Next(dest []drv.Value) error {
 
 	for i := range dest {
 		in := r.data[r.cursor][i].Get()
-		if st, ok := in.(fmt.Stringer); ok {
-			in = st.String()
-		}
 		dest[i] = in
 	}
 	r.cursor++
