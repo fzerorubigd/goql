@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/fzerorubigd/goql/astdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,11 +55,12 @@ func TestDriver(t *testing.T) {
 	}()
 
 	for s.Next() {
-		var name, pkg, def string
+		var name, pkg string
+		var def astdata.Definition
 
 		assert.NoError(t, s.Scan(&name, &pkg, &def))
 		assert.NotEmpty(t, name)
 		assert.NotEmpty(t, pkg)
-		assert.NotEmpty(t, def)
+		assert.NotEmpty(t, def.String())
 	}
 }

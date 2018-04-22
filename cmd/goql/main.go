@@ -1,3 +1,5 @@
+// +build go1.8
+
 package main
 
 import (
@@ -5,12 +7,14 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 
 	_ "github.com/fzerorubigd/goql"
 	"github.com/fzerorubigd/goql/plugin/goqlimport"
 	"github.com/ogier/pflag"
 	"github.com/olekukonko/tablewriter"
+	"github.com/spf13/cast"
 )
 
 var (
@@ -55,42 +59,58 @@ func main() {
 		log.Fatal(err)
 	}
 	defer c.Close()
-	row, err := c.Query(query)
+	rows, err := c.Query(query)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer row.Close()
+	defer rows.Close()
 
-	cols, err := row.Columns()
+	cols, err := rows.Columns()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Result is your slice string.
-	rawResult := make([][]byte, len(cols))
+	columns, err := rows.ColumnTypes()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Scan needs an array of pointers to the values it is setting
+	// This creates the object and sets the values correctly
+	var objects []map[int]interface{}
 	result := make([][]string, 0)
-
-	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
-	for i := range rawResult {
-		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
-	}
-
-	cur := 0
-	for row.Next() {
-		err = row.Scan(dest...)
+	for rows.Next() {
+		values := make([]interface{}, len(columns))
+		object := map[int]interface{}{}
+		for i, column := range columns {
+			object[i] = reflect.New(column.ScanType()).Interface()
+			values[i] = object[i]
+		}
+		err = rows.Scan(values...)
 		if err != nil {
 			log.Fatal(err)
 		}
-		rr := make([]string, len(cols))
-		for i, raw := range rawResult {
+		stringData := make([]string, len(cols))
+		for i, raw := range object {
 			if raw == nil {
-				rr[i] = "<nil>"
+				stringData[i] = "<nil>"
 			} else {
-				rr[i] = string(raw)
+				stringData[i] = cast.ToString(raw)
 			}
 		}
-		result = append(result, rr)
-		cur++
+		result = append(result, stringData)
+	}
+
+	for i, object := range objects {
+		stringData := make([]string, len(cols))
+		for i, raw := range object {
+			if raw == nil {
+				stringData[i] = "<nil>"
+			} else {
+				stringData[i] = cast.ToString(raw)
+			}
+		}
+		result[i] = stringData
 	}
 
 	switch strings.ToLower(*format) {
