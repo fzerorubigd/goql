@@ -64,7 +64,7 @@ func (d dummy) Type() parse.ItemType {
 }
 
 func (d dummy) Pos() int {
-	panic("here")
+	return d.pos
 }
 
 func (d dummy) Value() string {
@@ -417,7 +417,7 @@ func callWhere(where getter, i []Getter) (ok bool, err error) {
 }
 
 func paramToStatic(f *field, p interface{}) {
-
+	// See https://golang.org/pkg/database/sql/driver/#Value
 	switch t := p.(type) {
 	case bool:
 		f.typ = fieldTypeStaticBool
@@ -425,16 +425,10 @@ func paramToStatic(f *field, p interface{}) {
 	case string:
 		f.typ = fieldTypeStaticString
 		f.staticStr = t
-	case fmt.Stringer:
+	case []byte:
 		f.typ = fieldTypeStaticString
-		f.staticStr = t.String()
-	case int:
-		f.typ = fieldTypeStaticNumber
-		f.staticNum = float64(t)
+		f.staticStr = string(t)
 	case int64:
-		f.typ = fieldTypeStaticNumber
-		f.staticNum = float64(t)
-	case float32:
 		f.typ = fieldTypeStaticNumber
 		f.staticNum = float64(t)
 	case float64:

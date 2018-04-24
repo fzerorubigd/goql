@@ -24,13 +24,12 @@ type (
 
 var (
 	operGetterMap = map[parse.ItemType]operGetter{
-		itemColumn:             fieldGetterGenerator,
-		parse.ItemLiteral1:     literal1GetterGenerator,
-		parse.ItemNumber:       numberGetterGenerator,
-		parse.ItemNull:         nullGetterGenerator,
-		parse.ItemTrue:         boolGetterGenerator,
-		parse.ItemFalse:        boolGetterGenerator,
-		parse.ItemQuestionMark: parameterGetterGenerator,
+		itemColumn:         fieldGetterGenerator,
+		parse.ItemLiteral1: literal1GetterGenerator,
+		parse.ItemNumber:   numberGetterGenerator,
+		parse.ItemNull:     nullGetterGenerator,
+		parse.ItemTrue:     boolGetterGenerator,
+		parse.ItemFalse:    boolGetterGenerator,
 	}
 
 	opGetterMap = map[parse.ItemType]opGetter{
@@ -74,16 +73,6 @@ func assertType(t parse.Item, tp ...parse.ItemType) {
 		}
 	}
 	panic("runtime error")
-}
-
-func parameterGetterGenerator(t parse.Item) getter {
-	assertType(t, parse.ItemQuestionMark)
-	return func(in []Getter) interface{} {
-		for i := range in {
-			fmt.Println(in[i].Get())
-		}
-		return nullValue
-	}
 }
 
 func nullGetterGenerator(t parse.Item) getter {
