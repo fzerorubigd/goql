@@ -57,7 +57,7 @@ func (gs *stmt) Close() error {
 }
 
 func (gs *stmt) NumInput() int {
-	return 0
+	return gs.query.Statement.ParamCount()
 }
 
 func (gs *stmt) Exec(args []drv.Value) (drv.Result, error) {
@@ -66,8 +66,12 @@ func (gs *stmt) Exec(args []drv.Value) (drv.Result, error) {
 
 func (gs *stmt) Query(args []drv.Value) (drv.Rows, error) {
 	var err error
+	params := make([]interface{}, len(args))
+	for i := range args {
+		params[i] = args[i]
+	}
 	r := &rows{}
-	r.rows, r.data, err = execute(gs.pkg, gs.query)
+	r.rows, r.data, err = execute(gs.pkg, gs.query, params...)
 	if err != nil {
 		return nil, err
 	}

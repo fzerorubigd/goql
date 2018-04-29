@@ -4,6 +4,7 @@ type parser struct {
 	l        *lexer
 	last     item
 	rejected bool
+	qCount   int
 }
 
 func (p *parser) scan() item {
@@ -15,6 +16,9 @@ func (p *parser) scan() item {
 
 	p.last = p.l.nextItem()
 	p.rejected = false
+	if p.last.typ == ItemQuestionMark {
+		p.qCount++
+	}
 	return p.last
 }
 

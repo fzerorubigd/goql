@@ -17,6 +17,7 @@ const (
 	fieldTypeStaticString
 	fieldTypeStaticBool
 	fieldTypeFunction
+	fieldTypeParameter // means this is a ? and must fill it from the query parameters
 )
 
 type field struct {
@@ -29,6 +30,7 @@ type field struct {
 	argsOrder  []int // for function column only, the order of arguments in the fields list
 	show       bool
 	staticBool bool
+	paramIdx   int // for parameters from query input
 }
 
 type context struct {
@@ -54,6 +56,7 @@ type dummy struct {
 	typ   parse.ItemType
 	pos   int
 	value string
+	data  int
 }
 
 func (d dummy) Type() parse.ItemType {
@@ -68,20 +71,25 @@ func (d dummy) Value() string {
 	return d.value
 }
 
+func (d dummy) Data() int {
+	return d.data
+}
+
 func (d dummy) String() string {
 	return "dummy"
 }
 
-func newItem(t parse.ItemType, v string, p int) parse.Item {
+func newItem(t parse.ItemType, v string, p int, d int) parse.Item {
 	return dummy{
 		typ:   t,
 		pos:   p,
 		value: v,
+		data:  d,
 	}
 }
 
 // execute the query
-func execute(c interface{}, src *parse.Query) ([]string, [][]Getter, error) {
+func execute(c interface{}, src *parse.Query, params ...interface{}) ([]string, [][]Getter, error) {
 	var err error
 	ctx := &context{pkg: c, q: src}
 
@@ -90,11 +98,11 @@ func execute(c interface{}, src *parse.Query) ([]string, [][]Getter, error) {
 		return nil, nil, err
 	}
 
-	return doQuery(ctx)
+	return doQuery(ctx, params...)
 }
 
 func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
-	assertType(fl.Item, parse.ItemNumber, parse.ItemTrue, parse.ItemFalse, parse.ItemLiteral1)
+	assertType(fl.Item, parse.ItemNumber, parse.ItemTrue, parse.ItemFalse, parse.ItemLiteral1, parse.ItemQuestionMark)
 	defer func() {
 		ctx.order++
 	}()
@@ -128,6 +136,16 @@ func getStaticColumn(ctx *context, fl parse.Field, show bool) field {
 			show:       show,
 			typ:        fieldTypeStaticBool,
 			staticBool: f,
+		}
+	}
+
+	if fl.Item.Type() == parse.ItemQuestionMark {
+		t = field{
+			order:    ctx.order,
+			name:     name,
+			show:     show,
+			typ:      fieldTypeParameter,
+			paramIdx: fl.Item.Data(),
 		}
 	}
 	return t
@@ -169,7 +187,7 @@ func getFieldStar(ctx *context) []field {
 	res := make([]field, len(ctx.definition))
 	for i := range ctx.definition {
 		// the order in * is based on order in definition, so fix it
-		f, _ := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0)}, true)
+		f, _ := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, i, 0, 0)}, true)
 		f.order = ctx.definition[i].Order()
 		ctx.selected[f.name] = f.order
 		res[f.order] = f
@@ -201,6 +219,15 @@ func getFieldFunction(ctx *context, fl parse.Field, show bool) ([]field, error) 
 	return append(f, params...), nil
 }
 
+func isStatic(t parse.ItemType) bool {
+	return t == parse.ItemNumber ||
+		t == parse.ItemTrue ||
+		t == parse.ItemFalse ||
+		t == parse.ItemNull ||
+		t == parse.ItemLiteral1 ||
+		t == parse.ItemQuestionMark
+}
+
 func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, error) {
 	var direct []int
 	var res []field
@@ -212,7 +239,7 @@ func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, err
 				return nil, nil, fmt.Errorf("invalid * position")
 			}
 			res = append(res, getFieldStar(ctx)...)
-		case fls[i].Item.Type() == parse.ItemTrue || fls[i].Item.Type() == parse.ItemFalse || fls[i].Item.Type() == parse.ItemNull || fls[i].Item.Type() == parse.ItemLiteral1 || fls[i].Item.Type() == parse.ItemNumber:
+		case isStatic(fls[i].Item.Type()):
 			res = append(res, getStaticColumn(ctx, fls[i], show))
 		case fls[i].Item.Type() == parse.ItemFunc:
 			fs, err := getFieldFunction(ctx, fls[i], show)
@@ -235,7 +262,7 @@ func getFields(ctx *context, show bool, fls ...parse.Field) ([]field, []int, err
 func getOrderFileds(ctx *context, o ...parse.Order) ([]field, error) {
 	var res []field
 	for i := range o {
-		fs, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, o[i].Field, 0)}, false)
+		fs, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, o[i].Field, 0, 0)}, false)
 		if err != nil {
 			return nil, err
 		}
@@ -259,12 +286,22 @@ func getWhereField(ctx *context) (parse.Stack, []field, error) {
 			switch p.Type() {
 			case parse.ItemAlpha, parse.ItemLiteral2:
 				v := parse.GetTokenString(p)
-				f, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, v, 0)}, false)
+				f, err := getFieldColumn(ctx, parse.Field{Item: newItem(parse.ItemAlpha, v, 0, 0)}, false)
 				if err != nil {
 					return nil, nil, err
 				}
 				res = append(res, f)
-				ts = newItem(itemColumn, v, f.order)
+				ts = newItem(itemColumn, v, 0, f.order)
+			case parse.ItemQuestionMark:
+				res = append(res, field{
+					order:    ctx.order,
+					name:     "static",
+					show:     false,
+					typ:      fieldTypeParameter,
+					paramIdx: p.Data(),
+				})
+				ts = newItem(itemColumn, "static", 0, ctx.order)
+				ctx.order++
 			case parse.ItemFunc:
 				fn := p.(parse.FuncItem)
 				fs, err := getFieldFunction(ctx, parse.Field{Item: p, Parameters: fn.Parameters()}, false)
@@ -273,7 +310,7 @@ func getWhereField(ctx *context) (parse.Stack, []field, error) {
 				}
 				res = append(res, fs...)
 				// function is calculated on fill gaps, then simply we can use the result at the end a static
-				ts = newItem(itemColumn, fn.Value(), fs[0].order)
+				ts = newItem(itemColumn, fn.Value(), 0, fs[0].order)
 			}
 			s.Push(ts)
 		}
@@ -379,14 +416,42 @@ func callWhere(where getter, i []Getter) (ok bool, err error) {
 	return toBool(where(i)), nil
 }
 
-func doQuery(ctx *context) ([]string, [][]Getter, error) {
+func paramToStatic(f *field, p interface{}) {
+	// See https://golang.org/pkg/database/sql/driver/#Value
+	switch t := p.(type) {
+	case bool:
+		f.typ = fieldTypeStaticBool
+		f.staticBool = t
+	case string:
+		f.typ = fieldTypeStaticString
+		f.staticStr = t
+	case []byte:
+		f.typ = fieldTypeStaticString
+		f.staticStr = string(t)
+	case int64:
+		f.typ = fieldTypeStaticNumber
+		f.staticNum = float64(t)
+	case float64:
+		f.typ = fieldTypeStaticNumber
+		f.staticNum = t
+	default:
+		f.typ = fieldTypeStaticString
+		f.staticStr = fmt.Sprintf("%T", t)
+	}
+}
+
+func doQuery(ctx *context, params ...interface{}) ([]string, [][]Getter, error) {
 	res := make(chan []Getter, 3)
 	ss := ctx.q.Statement.(*parse.SelectStmt)
 	var all = make([]string, len(ctx.flds))
+
 	for i := range ctx.flds {
 		// only fields are allowed
 		if ctx.flds[i].typ == fieldTypeColumn {
 			all[i] = ctx.flds[i].name
+		}
+		if ctx.flds[i].typ == fieldTypeParameter {
+			paramToStatic(&ctx.flds[i], params[ctx.flds[i].paramIdx-1])
 		}
 	}
 	quit := make(chan struct{}, 1)

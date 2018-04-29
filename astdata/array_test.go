@@ -1,7 +1,6 @@
 package astdata
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +57,6 @@ func TestArrayType(t *testing.T) {
 	assert.Equal(t, "[...]string{}", et.String())
 	nd, err = NewDefinition(`[...]string{}`)
 	require.NoError(t, err)
-	fmt.Println(nd.String())
 	assert.True(t, nd.Compare(et))
 	assert.False(t, nd.Compare(at))
 

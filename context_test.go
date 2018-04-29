@@ -246,3 +246,18 @@ func TestContextErr(t *testing.T) {
 	assert.False(t, b)
 	assert.Error(t, err)
 }
+
+func TestDummy(t *testing.T) {
+	p := newItem(parse.ItemWhiteSpace, " ", 10, 11)
+	assert.Equal(t, parse.ItemWhiteSpace, p.Type())
+	assert.Equal(t, " ", p.Value())
+	assert.Equal(t, 10, p.Pos())
+	assert.Equal(t, 11, p.Data())
+
+	g := newGetter(10)
+	assert.Equal(t, itemGetter, g.Type())
+	assert.Equal(t, "", g.Value())
+	assert.Equal(t, 0, g.Pos())
+	assert.Equal(t, 0, g.Data())
+
+}

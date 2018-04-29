@@ -12,6 +12,9 @@ type Query struct {
 
 // Statement is the statement interface, only select is supported currently
 type Statement interface {
+	// ParamCount return how many parameter this statement needs.
+	ParamCount() int
+
 	parse(*parser) error
 }
 
@@ -60,6 +63,13 @@ type SelectStmt struct {
 	Order Orders // Orders in order part, if any
 	Start int    // the start column , -1 means no start specified
 	Count int    // the count to show, -1 means no count specified
+
+	pc int // number of ? in query
+}
+
+// ParamCount return the number of parameters required for this
+func (ss *SelectStmt) ParamCount() int {
+	return ss.pc
 }
 
 // GetTokenString is a simple function to handle the quoted strings, it remove the single or double quote
@@ -96,6 +106,7 @@ func newStatement(p *parser) (Statement, error) {
 		if err != nil {
 			return nil, err
 		}
+		sel.pc = p.qCount
 		return sel, nil
 	default:
 		return nil, fmt.Errorf("token %s is not a valid token", start.value)
