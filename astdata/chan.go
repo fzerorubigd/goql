@@ -17,8 +17,7 @@ const (
 
 // ChannelType is the channel type in go source code
 type ChannelType struct {
-	pkg *Package
-	fl  *File
+	embededData
 
 	direction ChanDir
 	def       Definition
@@ -35,16 +34,6 @@ func (c *ChannelType) String() string {
 	default:
 		return "chan " + c.def.String()
 	}
-}
-
-// Package is the package of channel
-func (c *ChannelType) Package() *Package {
-	return c.pkg
-}
-
-// File return the file of package
-func (c *ChannelType) File() *File {
-	return c.fl
 }
 
 // Direction return the channel direction
@@ -64,8 +53,11 @@ func (c *ChannelType) Compare(def Definition) bool {
 
 func getChannel(p *Package, f *File, t *ast.ChanType) Definition {
 	return &ChannelType{
-		pkg:       p,
-		fl:        f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 		direction: ChanDir(t.Dir),
 		def:       newType(p, f, t.Value),
 	}

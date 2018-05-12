@@ -6,8 +6,7 @@ import (
 
 // InterfaceType is the interface in go code
 type InterfaceType struct {
-	pkg *Package
-	fl  *File
+	embededData
 
 	functions []*Function
 	embeds    []Definition // IdentType or SelectorType
@@ -28,16 +27,6 @@ func (i *InterfaceType) String() string {
 	return res + "}"
 }
 
-// Package get the interface package
-func (i *InterfaceType) Package() *Package {
-	return i.pkg
-}
-
-// File is the file of this type
-func (i *InterfaceType) File() *File {
-	return i.fl
-}
-
 // Functions return the functions in the interface
 func (i *InterfaceType) Functions() []*Function {
 	return i.functions
@@ -56,8 +45,11 @@ func (i *InterfaceType) Compare(def Definition) bool {
 func getInterface(p *Package, f *File, t *ast.InterfaceType) Definition {
 	// TODO : interface may refer to itself I need more time to implement this
 	iface := &InterfaceType{
-		pkg: p,
-		fl:  f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 	}
 	for i := range t.Methods.List {
 		res := Function{}

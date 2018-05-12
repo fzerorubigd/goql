@@ -18,6 +18,24 @@ var (
 	builtin *Package
 )
 
+type embededData struct {
+	pkg  *Package
+	fl   *File
+	node ast.Node
+}
+
+func (ed embededData) Package() *Package {
+	return ed.pkg
+}
+
+func (ed embededData) File() *File {
+	return ed.fl
+}
+
+func (ed embededData) Node() ast.Node {
+	return ed.node
+}
+
 func translateToFullPath(path string, packages ...string) (string, error) {
 	root := runtime.GOROOT()
 	p := os.Getenv("GOPATH")
@@ -103,7 +121,8 @@ func checkTypeCast(p *Package, bi *Package, args []ast.Expr, name string) (Defin
 	// the type
 	_, err := p.FindType(name)
 	if err == nil {
-		return &IdentType{pkg: p, ident: name}, nil
+		// TODO : file and node?
+		return &IdentType{embededData: embededData{pkg: p}, ident: name}, nil
 	}
 
 	return nil, fmt.Errorf("can not find the call for %s", name)

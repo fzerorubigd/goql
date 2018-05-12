@@ -6,8 +6,7 @@ import (
 
 // SelectorType is the type in another package
 type SelectorType struct {
-	pkg *Package
-	fl  *File
+	embededData
 
 	selector string
 	resolved string
@@ -17,11 +16,6 @@ type SelectorType struct {
 
 func (s *SelectorType) String() string {
 	return s.selector + "." + s.ident
-}
-
-// Package is the package of selector
-func (s *SelectorType) Package() *Package {
-	return s.pkg
 }
 
 // Selector is the selector type
@@ -48,8 +42,11 @@ func (s *SelectorType) Compare(def Definition) bool {
 func getSelector(p *Package, f *File, t *ast.SelectorExpr) Definition {
 	it := t.X.(*ast.Ident)
 	res := &SelectorType{
-		pkg:      p,
-		fl:       f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 		ident:    nameFromIdent(t.Sel),
 		selector: nameFromIdent(it),
 	}

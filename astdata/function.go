@@ -62,7 +62,7 @@ func (f *Function) RecieverPointer() bool {
 
 // Body return the function body
 func (f *Function) Body() string {
-	return f.body
+	return extractSrc(f.file.src, f.fn.Body)
 }
 
 // Definition return the definition of the func

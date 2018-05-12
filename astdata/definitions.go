@@ -14,6 +14,8 @@ type Definition interface {
 	// Compare two definition
 	// TODO : this is here, but the implementation is not complete. for {Selector,Map,Struct,Interface,Func}Type we need to check for selector type canonical name and pkg name
 	Compare(Definition) bool
+	// Node return the original ast node
+	Node() ast.Node
 }
 
 func newType(p *Package, f *File, e ast.Expr) Definition {

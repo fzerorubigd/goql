@@ -69,8 +69,8 @@ type Fields []*Field
 
 // StructType is the structures in golang source code
 type StructType struct {
-	pkg    *Package
-	fl     *File
+	embededData
+
 	fields Fields
 	embeds Embeds
 }
@@ -95,16 +95,6 @@ func (s *StructType) String() string {
 	return res + "}"
 }
 
-// Package return the package of this struct
-func (s *StructType) Package() *Package {
-	return s.pkg
-}
-
-// File return the file of type
-func (s *StructType) File() *File {
-	return s.fl
-}
-
 // Fields return struct fields
 func (s *StructType) Fields() Fields {
 	return s.fields
@@ -122,8 +112,11 @@ func (s *StructType) Compare(def Definition) bool {
 
 func getStruct(p *Package, f *File, t *ast.StructType) Definition {
 	res := &StructType{
-		pkg: p,
-		fl:  f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 	}
 	for _, s := range t.Fields.List {
 		if s.Names != nil {

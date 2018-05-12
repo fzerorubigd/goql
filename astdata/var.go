@@ -60,9 +60,12 @@ func getBuiltinFunc(name string, v *Variable) Definition {
 		if fn.name == "new" {
 			tt := newType(v.pkg, v.fl, v.caller.Args[0])
 			return &StarType{
+				embededData: embededData{
+					pkg:  v.pkg,
+					fl:   v.fl,
+					node: v.caller.Args[0], // TODO : wrong :/
+				},
 				def: tt,
-				pkg: v.pkg,
-				fl:  v.fl,
 			}
 		}
 	}
@@ -102,9 +105,12 @@ func getForeignType(pkg *Package, pkgName string, fl *File, foreignTyp Definitio
 		c := name[0]
 		if c >= 'A' && c <= 'Z' {
 			var res Definition = &SelectorType{
+				embededData: embededData{
+					pkg:  pkg,
+					fl:   fl,
+					node: foreignTyp.Node(), // TODO : wrong
+				},
 				selector: pkgName,
-				fl:       fl,
-				pkg:      pkg,
 				ident:    name,
 			}
 			if star {

@@ -51,7 +51,6 @@ func (fv *walker) Visit(node ast.Node) ast.Visitor {
 			fv.File.docs = docsFromNodeDoc(t.Doc)
 		case *ast.FuncDecl:
 			fn := newFunction(fv.Package, fv.File, t)
-			fn.body = extractSrc(fv.src, t.Body)
 			fv.File.functions = append(fv.File.functions, fn)
 			return nil // Do not go deeper
 		case *ast.GenDecl:

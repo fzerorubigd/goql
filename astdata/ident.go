@@ -6,24 +6,13 @@ import (
 
 // IdentType is the normal type name
 type IdentType struct {
-	pkg *Package
-	fl  *File
+	embededData
 
 	ident string
 }
 
 func (i *IdentType) String() string {
 	return i.ident
-}
-
-// Package get the package of ident
-func (i *IdentType) Package() *Package {
-	return i.pkg
-}
-
-// File return the file of the type
-func (i *IdentType) File() *File {
-	return i.fl
 }
 
 // Ident is the ident of this type
@@ -43,8 +32,11 @@ func getIdent(p *Package, f *File, t *ast.Ident) Definition {
 	//		p = nil
 	//	}
 	return &IdentType{
-		pkg:   p,
-		fl:    f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 		ident: ident,
 	}
 }

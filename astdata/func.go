@@ -7,8 +7,7 @@ import (
 
 // FuncType is the single function
 type FuncType struct {
-	pkg *Package
-	fl  *File
+	embededData
 
 	parameters []*Variable
 	results    []*Variable
@@ -46,16 +45,6 @@ func (f *FuncType) Sign() string {
 // String is the string representation of func type
 func (f *FuncType) String() string {
 	return f.getDefinitionWithName("func ")
-}
-
-// Package is the func package
-func (f *FuncType) Package() *Package {
-	return f.pkg
-}
-
-// File of the type
-func (f *FuncType) File() *File {
-	return f.fl
 }
 
 // Parameters is the parameter of the function
@@ -97,8 +86,11 @@ func getVariableList(p *Package, fl *File, f *ast.FieldList) []*Variable {
 
 func getFunc(p *Package, f *File, t *ast.FuncType) Definition {
 	return &FuncType{
-		pkg:        p,
-		fl:         f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 		parameters: getVariableList(p, f, t.Params),
 		results:    getVariableList(p, f, t.Results),
 	}

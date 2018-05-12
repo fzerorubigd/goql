@@ -82,6 +82,7 @@ func TestStructType(t *testing.T) {
 	assert.Equal(t, reflect.StructTag("tag:\"test_2\""), e1.Tags())
 	assert.Equal(t, "struct {\n\tST2\n\tA2 string \n}", def.String())
 	assert.Equal(t, "", e1.Docs().String())
+	assert.Equal(t, "ST2", e1.Definition().String())
 
 	assert.Equal(t, p, def.Package())
 	assert.Equal(t, f, def.File())

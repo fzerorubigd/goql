@@ -8,11 +8,12 @@ import (
 
 // ArrayType is the base array
 type ArrayType struct {
-	pkg   *Package
-	fl    *File
+	embededData
+
 	slice bool
 	len   int
 	def   Definition
+	expr  *ast.ArrayType
 }
 
 // EllipsisType is slice type but with ...type definition
@@ -26,16 +27,6 @@ func (a *ArrayType) String() string {
 		return "[]" + a.def.String()
 	}
 	return fmt.Sprintf("[%d]%s", a.len, a.def.String())
-}
-
-// Package return the array package
-func (a *ArrayType) Package() *Package {
-	return a.pkg
-}
-
-// File return the file of this type
-func (a *ArrayType) File() *File {
-	return a.fl
 }
 
 // ValueDefinition return the definition of value
@@ -63,6 +54,11 @@ func (a *ArrayType) Compare(def Definition) bool {
 	return a.String() == def.String()
 }
 
+// Expr is the expr from ast
+func (a *ArrayType) Expr() ast.Expr {
+	return a.expr
+}
+
 // Compare try to compare this to def
 func (e *EllipsisType) Compare(def Definition) bool {
 	return e.String() == def.String()
@@ -86,8 +82,11 @@ func getArray(p *Package, f *File, t *ast.ArrayType) Definition {
 		l, _ = strconv.ParseInt(ls, 10, 0)
 	}
 	var at Definition = &ArrayType{
-		pkg:   p,
-		fl:    f,
+		embededData: embededData{
+			pkg:  p,
+			fl:   f,
+			node: t,
+		},
 		slice: t.Len == nil,
 		len:   int(l),
 		def:   newType(p, f, t.Elt),
