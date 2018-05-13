@@ -32,3 +32,4 @@
 | embed_count(definition)          | return the number of embedded item in struct, null if the definition is not a valid struct (or interface)                                      |
 | func_def(definition, int/string) | return definition of the nth function in interface (started from 1), or definition of the function based on name, return nil for invalid input |
 | func_name(definition, int)       | return the function name of the nth function, return nil on invalid input                                                                      |
+
