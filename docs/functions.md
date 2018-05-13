@@ -10,7 +10,7 @@
 | field_count(definition)                     | return the number of fields in definition or null if its not valid definition or its not a struct                                                                                                                                                                 |
 | filed_tag(definition, int/string, [string]) | return the struct tag of the field at the position or with name of the second argument add if the last argument is available, return the tag for that specific value, return null if definition is not a valid struct or the field is out of index or not correct |
 | embed_def(definition, int)                  | return the embedded structure definition at the position, or null if the definition is not valid or the position is out of range                                                                                                                                  |
-| embed_count(definition)                     | return the number of embedded item in struct, null if the definition is not a valid struct                                                                                                                                                                        |
+| embed_count(definition)                     | return the number of embedded item in struct, null if the definition is not a valid struct (or interface)                                                                                                                                                                        |
 | embed_tag(definition, int, [string])        | return the struct tag of the embedded item at the position, if the last arguments is available return specific tag, return null if the definition is not struct or index is out of range                                                                          |
 
 
@@ -25,6 +25,10 @@
 
 ## Interface functions 
 
-| Name                     | Description                                                                                                  |
-| ----                     | -----------                                                                                                  |
-| is_interface(definition) | return true if the definition is an interface or false if not. if the definition is not valid it return null |
+| Name                             | Description                                                                                                                                    |
+| ----                             | -----------                                                                                                                                    |
+| is_interface(definition)         | return true if the definition is an interface or false if not. if the definition is not valid it return null                                   |
+| func_count(definition)           | return number of functions in interface, if definition is not interface return nil                                                             |
+| embed_count(definition)          | return the number of embedded item in struct, null if the definition is not a valid struct (or interface)                                      |
+| func_def(definition, int/string) | return definition of the nth function in interface (started from 1), or definition of the function based on name, return nil for invalid input |
+| func_name(definition, int)       | return the function name of the nth function, return nil on invalid input                                                                      |

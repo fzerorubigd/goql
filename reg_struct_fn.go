@@ -36,15 +36,12 @@ func (sfc structFieldCountFn) Execute(args ...Getter) (Getter, error) {
 	if !ok {
 		return Number{Null: true}, nil
 	}
-	if sfc == 0 {
-		return Number{Number: float64(len(st.Fields()))}, nil
-	}
-	return Number{Number: float64(len(st.Embeds()))}, nil
+	return Number{Number: float64(len(st.Fields()))}, nil
 }
 
 type structFieldDefFn int
 
-func (sfd structFieldDefFn) Execute(args ...Getter) (Getter, error) {
+func (structFieldDefFn) Execute(args ...Getter) (Getter, error) {
 	if err := required(2, 2, args...); err != nil {
 		return nil, err
 	}
@@ -56,40 +53,25 @@ func (sfd structFieldDefFn) Execute(args ...Getter) (Getter, error) {
 	}
 
 	var f astdata.Definition
-	if sfd == 0 {
-		fl := st.Fields()
-	bigSwitch:
-		switch t := args[1].Get().(type) {
-		case float64:
-			nm := int(t)
-			if len(fl) < nm || nm < 1 {
-				return Definition{}, nil
-			}
-			f = fl[nm-1].Definition()
-		case string:
-			for i := range fl {
-				if fl[i].Name() == t {
-					f = fl[i].Definition()
-					break bigSwitch
-				}
-			}
-			return Definition{}, nil
-		default:
+	fl := st.Fields()
+bigSwitch:
+	switch t := args[1].Get().(type) {
+	case float64:
+		nm := int(t)
+		if len(fl) < nm || nm < 1 {
 			return Definition{}, nil
 		}
-	} else {
-		fl := st.Embeds()
-		switch t := args[1].Get().(type) {
-		case float64:
-			nm := int(t)
-			if len(fl) < nm || nm < 1 {
-				return Definition{}, nil
+		f = fl[nm-1].Definition()
+	case string:
+		for i := range fl {
+			if fl[i].Name() == t {
+				f = fl[i].Definition()
+				break bigSwitch
 			}
-			f = fl[nm-1].Definition()
-		default:
-			return Definition{}, nil
 		}
-
+		return Definition{}, nil
+	default:
+		return Definition{}, nil
 	}
 	return Definition{Definition: f}, nil
 }
@@ -175,9 +157,6 @@ func registerStructFunc() {
 	RegisterFunction("field_name", structFieldNameFn(0))
 	RegisterFunction("field_count", structFieldCountFn(0))
 	RegisterFunction("field_tag", structFieldTagFn(0))
-
-	RegisterFunction("embed_def", structFieldDefFn(1))
-	RegisterFunction("embed_count", structFieldCountFn(1))
 	RegisterFunction("embed_tag", structFieldTagFn(1))
 }
 

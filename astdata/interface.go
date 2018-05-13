@@ -9,7 +9,7 @@ type InterfaceType struct {
 	embededData
 
 	functions []*Function
-	embeds    []Definition // IdentType or SelectorType
+	embeds    Embeds
 }
 
 func (i *InterfaceType) String() string {
@@ -33,7 +33,7 @@ func (i *InterfaceType) Functions() []*Function {
 }
 
 // Embeds is the embedded interfaces
-func (i *InterfaceType) Embeds() []Definition {
+func (i *InterfaceType) Embeds() Embeds {
 	return i.embeds
 }
 
@@ -63,7 +63,11 @@ func getInterface(p *Package, f *File, t *ast.InterfaceType) Definition {
 			iface.functions = append(iface.functions, &res)
 		} else {
 			// This is the embedded interface
-			embed := newType(p, f, t.Methods.List[i].Type)
+			embed := &Embed{
+				def:  newType(p, f, t.Methods.List[i].Type),
+				docs: docsFromNodeDoc(t.Methods.List[i].Doc),
+				// tags are always empty. (struct tag :)
+			}
 			iface.embeds = append(iface.embeds, embed)
 		}
 

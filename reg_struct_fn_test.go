@@ -42,7 +42,7 @@ test int
 	assert.NoError(t, err)
 	assert.Equal(t, 0.0, g.Get())
 
-	g, err = structFieldCountFn(1).Execute(Definition{Definition: st0})
+	g, err = embedCountFn(0).Execute(Definition{Definition: st0})
 	assert.NoError(t, err)
 	assert.Equal(t, 1.0, g.Get())
 
@@ -50,7 +50,7 @@ test int
 	assert.NoError(t, err)
 	assert.Equal(t, 1.0, g.Get())
 
-	g, err = structFieldCountFn(1).Execute(Definition{Definition: st1})
+	g, err = embedCountFn(0).Execute(Definition{Definition: st1})
 	assert.NoError(t, err)
 	assert.Equal(t, 2.0, g.Get())
 
@@ -91,7 +91,7 @@ test int
 	assert.Equal(t, "int", def.Get().(astdata.Definition).String())
 
 	// embed
-	def, err = structFieldDefFn(1).Execute(Definition{Definition: st1}, Number{Number: 1})
+	def, err = embedDefFn(0).Execute(Definition{Definition: st1}, Number{Number: 1})
 	assert.NoError(t, err)
 	require.IsType(t, &astdata.SelectorType{}, def.Get())
 	assert.Equal(t, "pkg.Struct", def.Get().(astdata.Definition).String())
