@@ -67,7 +67,7 @@ func TestInterfaceType(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, nd.Compare(def))
 
-	em := def.Embeds()[0]
+	em := def.Embeds()[0].Definition()
 	require.IsType(t, &IdentType{}, em)
 	assert.Equal(t, "II", em.String())
 
